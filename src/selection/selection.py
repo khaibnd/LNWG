@@ -13,6 +13,7 @@ class ChrosKWaySelection():
        5. This continues until the number of individuals added to the mating pool is equal to the population size.'''
     def __init__(self, population_dict):
         self.population_dict = population_dict
+        
 
 
     def generate_df_selection(self):

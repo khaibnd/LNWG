@@ -43,6 +43,7 @@ class main():
                                       self.machine,
                                       self.sequence)
         self.population_dict = LoadInitial.generate_initial_population()
+        
         d = deepcopy(self.population_dict)
         writer = pd.ExcelWriter(INITIAL_OUTPUT)
         for i in range(20):
@@ -50,14 +51,17 @@ class main():
             e.to_excel(writer, sheet_name='s_%s' %i)
             writer.save()
         writer.save()
+        '''
         for num_observation, observation in self.population_dict.items():
             a = (FitnessCalculation.calculate_weighted_tardiness(self, observation))
             print('Observation: %s, weight tardiness: %s' %( num_observation, a))
+        '''
         print('Initial Solution Generated')
+        
         for iteration in range(num_iteration):
             print('iteration#:',iteration)
             # k-way selection
-            LoadSelection = ChrosKWaySelection
+
             self.population_dict = ChrosKWaySelection.generate_df_selection(self)
             d = deepcopy(self.population_dict)
             writer = pd.ExcelWriter(SELECTION_OUTPUT)
@@ -79,6 +83,7 @@ class main():
                 writer.save()
             writer.save()
             print('Mutation Generated')
+
             # fitness calculation to find the optimal solution
             for _, observation in iter(self.population_dict.items()):
                 local_makespan = FitnessCalculation.calculate_weighted_tardiness(self, observation)
