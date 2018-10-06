@@ -28,6 +28,9 @@ class DataInput():
 
 
 class DataOutput():
+    def __init__(self, machine_criteria):
+        self.machine_criteria = machine_criteria
+        
 
     def data_writer(self, output, best_makespan, best_solution):
         '''Write Output DataFrame to Excel file'''
@@ -42,8 +45,26 @@ class DataOutput():
         _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
 
         start_time = {}
+        def num_sunday(self, end, start, weekday=6):
+            start = datetime.datetime.utcfromtimestamp(start)
+            start_year = start.year
+            start_month = start.month
+            start_date = start.date
+
+            end = datetime.datetime.utcfromtimestamp(end)
+            end_year = end.year
+            end_month = end.month
+            end_date = end.date
+            
+            sunday, remainder = divmod((end - start).days, 7)
+            if (weekday - start.weekday()) % 7 <= remainder:
+                return sunday +1
+            else:
+                return sunday
+    
         for key in completion_time:
-            completion_time[key] = completion_time[key] * 3600 + start
+            
+            completion_time[key] = completion_time[key] * 3600 + start + 24*num_sunday(self, completion_time[key] * 3600 + start, start,6)
 
             part = best_solution.loc[best_solution.index == key]['part'].values[0]
             operation = best_solution.loc[best_solution.index == key]['operation'].values[0]

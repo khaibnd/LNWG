@@ -1,6 +1,7 @@
 '''Calculate production leadtime per observation'''
 from src.initial_solution.initial_solution import InitialSolution
 from copy import copy
+from sympy.integrals.rubi.utility_function import Part
 
 
 class FitnessCalculation():
@@ -43,7 +44,9 @@ class FitnessCalculation():
         num_lot_list = observation['num_lot'].unique()
         machine_list = observation['machine'].unique()
 
-        num_assign_lotsize = {job: 0
+        num_assign_max_lotsize = {job: 0
+                                   for job in observation.index}
+        num_assign_min_lotsize = {job: 0
                                    for job in observation.index}
         completion_time = {job: 0
                            for job in observation.index}
@@ -118,70 +121,69 @@ class FitnessCalculation():
                 return completion_time[row_index], prev_demand_job_completion_time[num_job], prev_operation_completion_time[num_lot]
 
             # Max lot size in machine = 1 and min lotsize =1
-            if (max_lotsize == 1) and (min_lotsize == 1) and (num_assign_lotsize[row_index] == 0):
+            if (max_lotsize == 1) and (min_lotsize == 1):
                 completion_time[row_index],\
                 prev_demand_job_completion_time[num_job],\
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
-                num_assign_lotsize[row_index] +=1
+
                 
             # Max lot size in machine > 1 and min lotsize =1
-            elif (min_lotsize == 1) and (num_assign_lotsize[row_index] == 0):
+            elif (min_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0) and (num_assign_min_lotsize[row_index] == 0):
+
                 completion_time[row_index],\
                 prev_demand_job_completion_time[num_job],\
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
-                num_assign_lotsize[row_index] +=1
-                
-                group_lot = row_index
-                total_lot = 0
-                while (group_lot < max(observation.index)) and (total_lot <= max_lotsize):
-
-                    group_lot +=1
-                    group_lot_observation = observation.loc[group_lot:,:]
-
-                    if (group_lot_observation.loc[group_lot, 'part'] == part) &\
-                       (group_lot_observation.loc[group_lot, 'operation'] == operation) &\
-                       (group_lot_observation.loc[group_lot, 'num_sequence'] == num_sequence):
-                        
-                        group_num_lot = group_lot_observation.loc[group_lot, 'num_lot']
-                        group_part = group_lot_observation.loc[group_lot, 'part']
-
+                succeed_observation = observation.loc[row_index+1:,:]
+                for group_row_index, group_row in succeed_observation.iterrows():
+                    lot_size = 1
+                    if (lot_size <= max_lotsize
+                        and group_row['part'] == part
+                        and group_row['operation'] == operation
+                        and group_row['machine'] == machine
+                        and group_row['num_sequence'] == num_sequence):
                         prev_operation = FitnessCalculation.prev_part_sequence_operation(self,
-                                                                                         part,
-                                                                                         operation,
-                                                                                         num_sequence)
-
-                        try:
-                            prev_group_row_index = observation.index[(observation['part'] ==part)
-                                                                     & (observation['num_lot'] == group_num_lot)
-                                                                     & (observation['operation'] == prev_operation)].tolist()[0]
-                            #print(row_index, row,group_lot, prev_operation, prev_group_row_index, row_index)
-                        except:
-                            prev_group_row_index = None
-    
+                                                                                     part,
+                                                                                     operation,
+                                                                                     num_sequence)
                         if prev_operation == None:
-                            start = True
-                        elif prev_group_row_index == None:
-                            start = False
-                        elif prev_group_row_index > row_index:
-                            start = True
-                        else:
-                            start = False
-                        
-                        if start == True:
-                            # print('machine: %s job: %s group %s' %(machine, job, group_lot))
-                            total_lot +=1
-                            group_job = group_lot_observation.loc[group_lot, 'num_job']
-                            num_assign_lotsize[group_lot] +=1
-                            completion_time[group_lot] = completion_time[row_index]
+                            group_row_num_lot = group_row['num_lot']
+                            group_num_job = group_row['num_job']
+                            completion_time[group_row_index] = completion_time[row_index]
+                            prev_demand_job_completion_time[group_num_job] = max(prev_demand_job_completion_time[num_job],
+                                                               completion_time[group_row_index])
+                            prev_machine_completion_time[machine] = completion_time[group_row_index]
+                            prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
+                            lot_size +=1
+                            num_assign_max_lotsize[group_row_index] +=1
                             
-
-            elif (min_lotsize == 1) and (num_assign_lotsize[row_index] >= 1):
-                # print('pass job %s' %job)
-                completion_time[row_index] = max(completion_time[row_index],prev_operation_completion_time[num_lot] + job_processing_time)
-                prev_machine_completion_time[machine] = completion_time[row_index]
-                prev_operation_completion_time[num_lot] = completion_time[row_index]
-            else:
+                        else:
+                            prev_group_observation = observation.loc[:group_row_index-1,:]
+                            try:
+                                group_row_num_lot = group_row['num_lot']
+                                prev_row_index = prev_group_observation.index[(prev_group_observation['num_lot'] == group_row_num_lot)
+                                                                    & (prev_group_observation['operation'] == prev_operation)].tolist()[0]
+                            except:
+                                prev_row_index = None
+                            if (prev_row_index == None) or (prev_row_index < row_index):
+                                group_row_num_lot = group_row['num_lot']
+                                group_num_job = group_row['num_job']
+                                completion_time[group_row_index] = completion_time[row_index]
+                                prev_demand_job_completion_time[group_num_job] = max(prev_demand_job_completion_time[num_job],
+                                                                   completion_time[group_row_index])
+                                prev_machine_completion_time[machine] = completion_time[group_row_index]
+                                prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
+                                lot_size +=1
+                                num_assign_max_lotsize[group_row_index] +=1
+                                print('case 1')
+            
+            elif (max_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0):
                 print('min lot size > 1')
+
+            elif num_assign_max_lotsize[row_index] == 0:
+                print('max and min lot size > 1')
+            else:
+                pass
+
 
         return prev_demand_job_completion_time, prev_operation_completion_time, completion_time
 
@@ -189,7 +191,7 @@ class FitnessCalculation():
         '''Calculate Demand total makespan'''
         prev_operation_completion_time, _ = FitnessCalculation.calculate_finished_time(self, observation)
         makespan = max(prev_operation_completion_time.values())
-        return round(makespan, 0)
+        return round(makespan, 1)
     
     def calculate_weighted_tardiness(self, observation):
         '''Calculate Demand total Weight Tardiness'''
@@ -201,7 +203,7 @@ class FitnessCalculation():
         completion_time = FitnessCalculation.calculate_finished_time(self, observation)
         for key in prev_demand_job_completion_time:
             weighted_tardiness += (prev_demand_job_completion_time[key] - lead_time[key] * 24) * demand_weight[key]
-        return weighted_tardiness
+        return round(weighted_tardiness, 1)
 
 if __name__=='__main__':
     FitnessCalculation.calculate_weighted_tardiness(self, observation)

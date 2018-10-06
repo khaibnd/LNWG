@@ -61,7 +61,7 @@ class main():
         for iteration in range(num_iteration):
             print('iteration#:',iteration)
             # k-way selection
-
+            
             self.population_dict = ChrosKWaySelection.generate_df_selection(self)
             d = deepcopy(self.population_dict)
             writer = pd.ExcelWriter(SELECTION_OUTPUT)
@@ -83,7 +83,7 @@ class main():
                 writer.save()
             writer.save()
             print('Mutation Generated')
-
+            
             # fitness calculation to find the optimal solution
             for _, observation in iter(self.population_dict.items()):
                 local_makespan = FitnessCalculation.calculate_weighted_tardiness(self, observation)
