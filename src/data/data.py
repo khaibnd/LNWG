@@ -32,13 +32,19 @@ class DataOutput():
         self.machine_criteria = machine_criteria
         
 
-    def data_writer(self, output, best_makespan, best_solution):
+    def data_writer(self,
+                    output,
+                    best_tardiness,
+                    best_solution,
+                    initial_finished_time,
+                    genetic_finished_time):
         '''Write Output DataFrame to Excel file'''
         start = start_date()
         writer = pd.ExcelWriter(output)
 
-        parameter = pd.DataFrame([['best_makespan', best_makespan],
-                                  ['best_time', 2]],
+        parameter = pd.DataFrame([['best_tardiness', best_tardiness],
+                                  ['initial_finished_time', initial_finished_time],
+                                  ['genetic_finished_time', genetic_finished_time]],
                                  columns=['criteria', 'value'])
         parameter.to_excel(writer, sheet_name='parameter')
 
@@ -64,7 +70,7 @@ class DataOutput():
     
         for key in completion_time:
             
-            completion_time[key] = completion_time[key] * 3600 + start + 24*num_sunday(self, completion_time[key] * 3600 + start, start,6)
+            completion_time[key] = completion_time[key] * 3600 + start + 24 *60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start,6)
 
             part = best_solution.loc[best_solution.index == key]['part'].values[0]
             operation = best_solution.loc[best_solution.index == key]['operation'].values[0]
@@ -85,3 +91,50 @@ class DataOutput():
         writer.save()
 
         return best_solution
+    
+    def iteration_record_writer(self,iteration_output, iteration_record, best_solution):
+        start = start_date()
+        writer = pd.ExcelWriter(iteration_output)
+        iteration_record.to_excel(writer, sheet_name='iteration')
+        _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
+
+        start_time = {}
+        def num_sunday(self, end, start, weekday=6):
+            start = datetime.datetime.utcfromtimestamp(start)
+            start_year = start.year
+            start_month = start.month
+            start_date = start.date
+
+            end = datetime.datetime.utcfromtimestamp(end)
+            end_year = end.year
+            end_month = end.month
+            end_date = end.date
+            
+            sunday, remainder = divmod((end - start).days, 7)
+            if (weekday - start.weekday()) % 7 <= remainder:
+                return sunday +1
+            else:
+                return sunday
+    
+        for key in completion_time:
+            
+            completion_time[key] = completion_time[key] * 3600 + start + 24 * 60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start,6)
+
+            part = best_solution.loc[best_solution.index == key]['part'].values[0]
+            operation = best_solution.loc[best_solution.index == key]['operation'].values[0]
+            num_sequence = best_solution.loc[best_solution.index == key]['num_sequence'].values[0]
+            job_run_time = FitnessCalculation.calculate_job_processing_time(self, part, operation, num_sequence)
+            start_time[key] = completion_time[key] - job_run_time * 60 * 60
+            completion_time[key] = datetime.datetime.utcfromtimestamp(completion_time[key])
+            start_time[key] = datetime.datetime.utcfromtimestamp(start_time[key])
+
+        completion_time = pd.Series(completion_time)
+        best_solution = pd.concat([best_solution,
+                                   completion_time.rename('completion_time')], axis=1)
+        
+        start_time = pd.Series(start_time) 
+        best_solution = pd.concat([best_solution, start_time.rename('start_time')], axis=1)
+        best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine', 'num_sequence', 'start_time', 'completion_time']]
+        best_solution.to_excel(writer, sheet_name='best_solution')
+        
+        writer.save()

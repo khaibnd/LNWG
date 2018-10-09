@@ -9,14 +9,17 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 from src.gantt.plotly import PlotlyGantt
 from copy import deepcopy
 import pandas as pd
+from timeit import default_timer as timer
 
-INPUT_FILE_LINK = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/input.xlsx'
-OUTPUT_FILE_LINK = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/output.xlsx'
-INITIAL_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/InitialSolution.xlsx'
-SELECTION_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/Selection.xlsx'
-CROSSOVER_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/Crossover.xlsx'
-MUTATION_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG3/src/data/Mutation.xlsx'
+INPUT_FILE_LINK = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
+OUTPUT_FILE_LINK = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output.xlsx'
+INITIAL_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/InitialSolution.xlsx'
+SELECTION_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/Selection.xlsx'
+CROSSOVER_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/Crossover.xlsx'
+MUTATION_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/Mutation.xlsx'
+ITERATION_OUTPUT = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/Iteration.xlsx'
 # pylint: disable=E0401
+program_start = timer()
 class main():
     def __init__(self):
         self.parameter,\
@@ -33,7 +36,7 @@ class main():
     def main_run(self):
         '''Main function to get output'''
         best_solution = None
-        best_makespan = 999999999999999
+        best_tardiness = 999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         # Gemerate initial population
         LoadInitial = InitialSolution(self.parameter,
@@ -51,14 +54,13 @@ class main():
             e.to_excel(writer, sheet_name='s_%s' %i)
             writer.save()
         writer.save()
-        '''
-        for num_observation, observation in self.population_dict.items():
-            a = (FitnessCalculation.calculate_weighted_tardiness(self, observation))
-            print('Observation: %s, weight tardiness: %s' %( num_observation, a))
-        '''
+        initial_finished_time = timer() - program_start
+
         print('Initial Solution Generated')
-        
+        iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time']
+        iteration_record = pd.DataFrame(columns=iteration_record_columns)
         for iteration in range(num_iteration):
+            iteration_start = timer()
             print('iteration#:',iteration)
             # k-way selection
             
@@ -70,6 +72,7 @@ class main():
                 e.to_excel(writer, sheet_name='s_%s' %i)
                 writer.save()
             writer.save()
+            
             print('k-way selection Generated')
             # crossover
             self.population_dict = ChrosCrossover.chros_crossover(self)
@@ -85,20 +88,41 @@ class main():
             print('Mutation Generated')
             
             # fitness calculation to find the optimal solution
+            local_tardiness_list = []
             for _, observation in iter(self.population_dict.items()):
-                local_makespan = FitnessCalculation.calculate_weighted_tardiness(self, observation)
-                print(local_makespan)
-                if local_makespan < best_makespan:
-                    best_makespan = deepcopy(local_makespan)
+                local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
+                print(local_tardiness)
+                local_tardiness_list.append(local_tardiness)
+                if local_tardiness < best_tardiness:
+                    best_tardiness = deepcopy(local_tardiness)
                     best_solution = deepcopy(observation)
-                    print('best local makespan: ', best_makespan)
-
+                    print('best local tardiness: ', best_tardiness)
+            worst_tardiness = max(local_tardiness_list)
+            best_tardiness = min(local_tardiness_list)
+            global_best_tardiness = best_tardiness
+            iteration_finished = timer()
+            iteration_run_time = iteration_finished - iteration_start
+            
+            new_row_iteration_record = pd.DataFrame([[worst_tardiness,
+                                                      best_tardiness,
+                                                      global_best_tardiness,
+                                                      iteration_run_time]],
+                                                      columns=iteration_record_columns)
+            iteration_record = iteration_record.append(new_row_iteration_record, ignore_index=True)
+            
+            DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, iteration_record, best_solution)
         # Adding timeline to best solution
-        best_solution = DataOutput.data_writer(self, OUTPUT_FILE_LINK, best_makespan, best_solution)
+        genetic_finished_time = timer() - program_start
+        
+        DataOutput.data_writer(self, OUTPUT_FILE_LINK,
+                               best_tardiness,
+                               best_solution,
+                               initial_finished_time,
+                               genetic_finished_time)
         # Build plot.ly Gantt Chart
         PlotlyGantt.plotly_gantt(self, best_solution)
 
-        return best_makespan, best_solution
+        return best_tardiness, best_solution
 
 if __name__ == '__main__':
     main = main()

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from src.initial_solution.initial_solution import InitialSolution
-
+from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 
 # pylint: disable=C0103
@@ -52,33 +52,8 @@ class ChrosMutation():
 
                 # Replace different machine to the row
                     self.population_dict[parent_index].loc[index, 'machine'] = random.choice(machine_list)
+        
 
-            # Intelligent Operations Assignment Mutation (IOAM)
-            if IOAM > np.random.uniform(0, 1):
-                machine_assign_time = ChrosMutation.machine_assign_time(self)
-                for row_index, row in observation.iterrows():
-                    machine = row['machine']
-                    machine_assign_time[machine] += 1
-                for machine_index, assign_time in machine_assign_time.items():
-                    max_mc, freq_max = max(list(enumerate(machine_assign_time[n])),
-                                           key=lambda x: x[1])
-                    min_mc, freq_min = min(list(enumerate(machine_assign_time[n])),
-                                           key=lambda x: x[1])
-                    # Change machine from maximum workload to the minimum workload
-                    total_max_index = []
-                    total_min_index = []
-                    for i, __ in enumerate(RHS):
-                        if RHS[i][2:] == [n, max_mc]:
-                            total_max_index.append(i)
-                        if RHS[i][2:] == [n, min_mc]:
-                            total_min_index.append(i)
-                        if len(total_max_index) > 0:
-                            max_index = np.random.choice(total_max_index)
-                            RHS[max_index][3] = min_mc
-                        if len(total_min_index) > 0:
-                            min_index = np.random.choice(total_min_index)
-                            RHS[min_index][3] = max_mc
-    
             # Operations Sequence Shift Mutation (OSSM)
             if OSSM > np.random.uniform(0, 1):
                 OSSM_pick = observation.sample(n=1)
@@ -107,4 +82,24 @@ class ChrosMutation():
                 
             observation = InitialSolution.observation_sequence_sort(self, observation)
             self.population_dict[parent_index] = observation
+
+
+            # Intelligent Task Sort Mutation (IOAM)
+            # Chuyen cac taskcan lam xong xom len truoc
+            if IOAM > np.random.uniform(0, 1):
+                population_key_list = self.population_dict.keys()
+                prev_demand_job_completion_time,\
+                prev_operation_completion_time,\
+                completion_time = FitnessCalculation.calculate_finished_time(self, observation)
+                lot_completion_time = {job: 0
+                                   for job in observation.index}
+                num_lot_list = observation['num_lot'].unique()
+                lot_completion_time = {num_lot:
+                                        completion_time[row_index]
+                                      for row_index in population_key_list for num_lot in num_lot_list
+                                      if observation[row_index, observation['num_lot' == num_lot]] == 'packing'}
+                print(lot_completion_time)
+
+                    
+            
         return self.population_dict

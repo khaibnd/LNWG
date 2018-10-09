@@ -30,3 +30,9 @@ Vấn đề code python call về giá trị cũ mà ko có sự thay đổi
 11. Working time: 6h00-10h00, trừ chủ nhật
 
 print('Ojob: %s group %s' %(job, group_lot))
+
+12. and vs & 
+
+13. Nhớ thêm điều kiện gộp lot khi none
+
+14. Gộp lot ở Coating theo Coat Design
