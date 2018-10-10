@@ -36,3 +36,9 @@ print('Ojob: %s group %s' %(job, group_lot))
 13. Nhớ thêm điều kiện gộp lot khi none
 
 14. Gộp lot ở Coating theo Coat Design
+
+unicorn
+favicon
+decorator: biến hello thanh 1 hello mới và gán lại vào def hello
+(check python glossary--> decorator)
+ORM: object relation mapper --> FlaskAlchemy

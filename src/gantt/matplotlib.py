@@ -1,7 +1,7 @@
 '''Build Gantt Chart on http://plot.ly'''
 import pandas as pd
 import numpy as np
-import plotly
+from src.gantt import plotly_gantt
 import plotly.plotly as py
 import plotly.figure_factory as ff
 
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from src.fitness_calculation.start_date import start_date
 from src.fitness_calculation.fitness_calculation import fitness_calculation
 
-plotly.tools.set_credentials_file(username='khaibnd', api_key='pDObqrmhM1Mq6KqUKte1')
+plotly_gantt.tools.set_credentials_file(username='khaibnd', api_key='pDObqrmhM1Mq6KqUKte1')
 start_date = start_date()
 
 class MatplotlibGantt():

@@ -11,26 +11,28 @@ class ChrosKWaySelection():
        3. A copy of this individual is added to the mating pool to form the next generation.
        4. the k individuals in the tournament are placed back in the current population and the process is repeated.
        5. This continues until the number of individuals added to the mating pool is equal to the population size.'''
-    def __init__(self, population_dict):
+    def __init__(self, population_dict, population_tardiness_dict, iteration):
         self.population_dict = population_dict
-        
+        self.population_tardiness_dict = population_tardiness_dict
+        self.iteration = iteration     
 
 
-    def generate_df_selection(self):
+    def generate_df_selection(self, iteration):
         '''Selection the chromosones from population for k-way selection'''
 
         
         new_population = {}
         population_size = int(self.parameter[self.parameter.name == 'population_size']['value'])
         k_way_parameter = int(self.parameter[self.parameter.name == 'k_way']['value'])
-        population_key_list = self.population_dict.keys()
-        population_makespan_dict = {num_observation:
-                                    FitnessCalculation.
-                                    calculate_weighted_tardiness(self,
-                                                                 self.population_dict.get(num_observation))
-                                    for num_observation in population_key_list}
+        if iteration == 0:
+            population_key_list = self.population_dict.keys()
+            self.population_tardiness_dict = {num_observation:
+                                        FitnessCalculation.
+                                        calculate_weighted_tardiness(self,
+                                                                     self.population_dict.get(num_observation))
+                                        for num_observation in population_key_list}
         for new_num_observation in range(population_size):
-            k_way_selection_dict = random.sample(population_makespan_dict.items(),
+            k_way_selection_dict = random.sample(self.population_tardiness_dict.items(),
                                                  k_way_parameter)
             # Convert tuple to dict
             k_way_selection_dict = dict((x, y) for x, y in k_way_selection_dict)

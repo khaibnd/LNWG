@@ -217,22 +217,6 @@ class FitnessCalculation():
                                     prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
                                     lot_size +=1
                                     num_assign_max_lotsize[group_row_index] +=1
-                            else:
-                                try:
-                                    group_row_num_lot = group_row['num_lot']
-                                    prev_row_index = observation.index[(observation['num_lot'] == group_row_num_lot)
-                                                                        & (observation['operation'] == prev_operation)].tolist()[0]
-                                except:
-                                    prev_row_index = None
-                                
-                                if (prev_row_index == None):
-                                    group_row_num_lot = group_row['num_lot']
-                                    group_num_job = group_row['num_job']
-                                    completion_time[group_row_index] = completion_time[row_index]
-                                    prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
-                                    prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                    lot_size +=1
-                                    num_assign_max_lotsize[group_row_index] +=1
                 
             elif (max_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0):
                 print('min lot size > 1')
