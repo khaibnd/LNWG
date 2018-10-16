@@ -3,13 +3,12 @@ import math
 from src.initial_solution.initial_solution import InitialSolution
 
 
-
 class FitnessCalculation():
     '''Measure invidial demand job completion time and Total Weighed Tardiness'''
-    def __init__(self, observation, sequence, machine_criteria):
+    def __init__(self, observation, sequence, machine_lotsize):
         self.observation = observation
         self.sequence = sequence
-        self.machine_criteria = machine_criteria
+        self.machine_lotsize = machine_lotsize
 
 
     def prev_part_sequence_operation(self, part, operation, num_sequence):
@@ -27,15 +26,15 @@ class FitnessCalculation():
         def line_index(num_sequence, part):
             line_index = self.processing_time.index[(self.processing_time['num_sequence'] == num_sequence)
                                               & (self.processing_time['part'] == part)].tolist()
-            
             # Get the smallest index
             line_index = line_index[0]
             return line_index
-
+        # print('line', part, operation, num_sequence)
         job_processing_time = self.processing_time.at[line_index(num_sequence, part), operation]
+        # print('job_processing_time', part, operation, num_sequence, job_processing_time)
         return job_processing_time
-    
-    
+
+
     def completion_time_with_daily_work_hour(self,
                                              row_index,
                                              job_processing_time,
@@ -80,7 +79,6 @@ class FitnessCalculation():
             operation = row['operation']
             machine = row['machine']
             num_sequence = row['num_sequence']
-            
             try:
                 job_processing_time = FitnessCalculation.calculate_job_processing_time(self,
                                                                                        part,
@@ -91,23 +89,13 @@ class FitnessCalculation():
                 print('part: %s, operation: %s, num_sequence: %s' %(part, operation, num_sequence))
 
 
-            def line_index(machine):
-                line_index = self.machine_criteria.index[(self.machine_criteria['machine'] == machine)].tolist()
-                line_index = line_index[0]
-                return line_index
-            
-            max_lotsize = self.machine_criteria.at[line_index(machine), 'max_lotsize']
-            min_lotsize = self.machine_criteria.at[line_index(machine), 'min_lotsize']
-
-
             def ga_calculation(self):
                 # Step 5.1: First assignment to machine m and operation
                 if (prev_machine_completion_time[machine] == 0 and
                     prev_operation_completion_time[num_lot] == 0):
-                    completion_time[row_index] = job_processing_time
+                    completion_time[row_index] = prev_operation_completion_time[num_lot] = job_processing_time
                     prev_demand_job_completion_time[num_job] = max(prev_demand_job_completion_time[num_job],
                                                                    completion_time[row_index])
-                    prev_operation_completion_time[num_lot] = completion_time[row_index]
                     prev_machine_completion_time[machine] = FitnessCalculation.completion_time_with_daily_work_hour(self,
                                                                                                                     row_index,
                                                                                                                     job_processing_time,
@@ -116,13 +104,12 @@ class FitnessCalculation():
                                                                                                                     prev_machine_completion_time)
     
                 # Step 5.2: First assignment to machine m and operation
-                elif ((prev_machine_completion_time[machine] == 0)
-                    and (prev_operation_completion_time[num_lot] > 0)):
-                    completion_time[row_index] = prev_operation_completion_time[num_lot] + job_processing_time
+                elif ((prev_machine_completion_time[machine] == 0) and
+                      (prev_operation_completion_time[num_lot] > 0)):
+                    completion_time[row_index] = prev_operation_completion_time[num_lot] = sum([prev_operation_completion_time[num_lot],
+                                                                                               job_processing_time])
                     prev_demand_job_completion_time[num_job] = max(prev_demand_job_completion_time[num_job],
                                                                    completion_time[row_index])
-                    prev_operation_completion_time[num_lot] = completion_time[row_index]
-                    
                     prev_machine_completion_time[machine] = FitnessCalculation.completion_time_with_daily_work_hour(self,
                                                                                                                     row_index,
                                                                                                                     job_processing_time,
@@ -131,28 +118,27 @@ class FitnessCalculation():
                                                                                                                     prev_machine_completion_time)
     
                 # Step 5.3: First operation in sequence and machine m assignment > 1
-                elif ((prev_machine_completion_time[machine] > 0)
-                    and (prev_operation_completion_time[num_lot] == 0)):
-                    completion_time[row_index] = prev_machine_completion_time[machine] + job_processing_time
+                elif ((prev_machine_completion_time[machine] > 0) and
+                      (prev_operation_completion_time[num_lot] == 0)):
+                    completion_time[row_index] = prev_operation_completion_time[num_lot] = sum([prev_operation_completion_time[num_lot],
+                                                                                                job_processing_time])
+                    prev_operation_completion_time[num_lot] = completion_time[row_index]
                     prev_demand_job_completion_time[num_job] = max(prev_demand_job_completion_time[num_job],
                                                                    completion_time[row_index])
-                    prev_operation_completion_time[num_lot] = completion_time[row_index]
-                    
                     prev_machine_completion_time[machine] = FitnessCalculation.completion_time_with_daily_work_hour(self,
                                                                                                                     row_index,
                                                                                                                     job_processing_time,
                                                                                                                     machine,
                                                                                                                     completion_time,
                                                                                                                     prev_machine_completion_time)
-    
+
                 # Step 5.4: Rest
                 else:
-                    completion_time[row_index] = max(prev_machine_completion_time[machine],
-                                               prev_operation_completion_time[num_lot]) + job_processing_time
+                    completion_time[row_index] = prev_operation_completion_time[num_lot] = max(prev_machine_completion_time[machine],
+                                                                                               sum([prev_operation_completion_time[num_lot],
+                                                                                                    job_processing_time]))
                     prev_demand_job_completion_time[num_job] = max(prev_demand_job_completion_time[num_job],
                                                                    completion_time[row_index])
-                    prev_operation_completion_time[num_lot] = completion_time[row_index]
-   
                     prev_machine_completion_time[machine] = FitnessCalculation.completion_time_with_daily_work_hour(self,
                                                                                                                     row_index,
                                                                                                                     job_processing_time,
@@ -163,13 +149,28 @@ class FitnessCalculation():
                         
                 return completion_time[row_index], prev_demand_job_completion_time[num_job], prev_operation_completion_time[num_lot]
 
+
+            def line_index(machine, num_sequence):
+                try:
+                    line_index = self.machine_lotsize.index[(self.machine_lotsize.machine == machine)
+                                                              & (self.machine_lotsize.num_sequence == num_sequence)].tolist()
+                    line_index = line_index[0]
+                except(IndexError):
+                    print('IndexError: list index out of range')
+                    print('Combination %s and %s is not in the input file' %(machine, num_sequence))
+                return line_index
+
+
+            max_lotsize = int(self.machine_lotsize.at[line_index(machine, num_sequence), 'max_lotsize'])
+            min_lotsize = int(self.machine_lotsize.at[line_index(machine, num_sequence), 'min_lotsize'])
+
             # Max lot size in machine = 1 and min lotsize =1
             if (max_lotsize == 1) and (min_lotsize == 1):
                 completion_time[row_index],\
                 prev_demand_job_completion_time[num_job],\
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
 
-                
+
             # Max lot size in machine > 1 and min lotsize =1
             elif (min_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0) and (num_assign_min_lotsize[row_index] == 0):
                 lot_size = 1
@@ -191,7 +192,6 @@ class FitnessCalculation():
                                                                                      num_sequence)
 
                         if prev_operation == None:
-                            print('first operation')
                             group_row_num_lot = group_row['num_lot']
                             group_num_job = group_row['num_job']
                             completion_time[group_row_index] = completion_time[row_index]
@@ -234,6 +234,7 @@ class FitnessCalculation():
                                     lot_size +=1
                                     num_assign_max_lotsize[group_row_index] +=1
                 
+                
             elif (max_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0):
                 print('min lot size > 1')
 
@@ -262,4 +263,5 @@ class FitnessCalculation():
         return round(weighted_tardiness, 1)
 
 if __name__=='__main__':
-    FitnessCalculation.calculate_weighted_tardiness(self, observation)
+    fitness = FitnessCalculation()
+    tardiness = fitness.calculate_weighted_tardiness(self, self.observation)

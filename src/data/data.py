@@ -22,9 +22,10 @@ class DataInput():
         wip = sheet_to_df_map['wip']
         machine = sheet_to_df_map['machine']
         machine_criteria = sheet_to_df_map['machine_criteria']
+        machine_lotsize = sheet_to_df_map['machine_lotsize']
         finished_goods = sheet_to_df_map['finished_goods']
 
-        return parameter, demand, criteria, sequence, machine, machine_criteria, processing_time, wip, finished_goods
+        return parameter, demand, criteria, sequence, machine, machine_criteria, machine_lotsize, processing_time, wip, finished_goods
 
 
 class DataOutput():
@@ -91,7 +92,16 @@ class DataOutput():
         writer.save()
 
         return best_solution
-    
+
+
+    def operation_output_writer(self, filename):
+        writer = pd.ExcelWriter(filename)
+        for i in range(20):
+            e = self.population_dict[i]
+            e.to_excel(writer, sheet_name='s_%s' %i)
+            writer.save()
+        writer.save()
+
     def iteration_record_writer(self,iteration_output, iteration_record, best_solution):
         start = start_date()
         writer = pd.ExcelWriter(iteration_output)
@@ -136,5 +146,11 @@ class DataOutput():
         best_solution = pd.concat([best_solution, start_time.rename('start_time')], axis=1)
         best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine', 'num_sequence', 'start_time', 'completion_time']]
         best_solution.to_excel(writer, sheet_name='best_solution')
-        
         writer.save()
+
+
+class ExcelFile():
+    def file_remove(self,file_link):
+        from os import path, remove
+        if path.exists(file_link):
+            remove(file_link)

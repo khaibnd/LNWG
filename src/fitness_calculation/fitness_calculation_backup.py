@@ -3,13 +3,12 @@ import math
 from src.initial_solution.initial_solution import InitialSolution
 
 
-
 class FitnessCalculation():
     '''Measure invidial demand job completion time and Total Weighed Tardiness'''
-    def __init__(self, observation, sequence, machine_criteria):
+    def __init__(self, observation, sequence, machine_lotsize):
         self.observation = observation
         self.sequence = sequence
-        self.machine_criteria = machine_criteria
+        self.machine_lotsize = machine_lotsize
 
 
     def prev_part_sequence_operation(self, part, operation, num_sequence):
@@ -91,15 +90,6 @@ class FitnessCalculation():
                 print('part: %s, operation: %s, num_sequence: %s' %(part, operation, num_sequence))
 
 
-            def line_index(machine):
-                line_index = self.machine_criteria.index[(self.machine_criteria['machine'] == machine)].tolist()
-                line_index = line_index[0]
-                return line_index
-            
-            max_lotsize = self.machine_criteria.at[line_index(machine), 'max_lotsize']
-            min_lotsize = self.machine_criteria.at[line_index(machine), 'min_lotsize']
-
-
             def ga_calculation(self):
                 # Step 5.1: First assignment to machine m and operation
                 if (prev_machine_completion_time[machine] == 0 and
@@ -163,6 +153,17 @@ class FitnessCalculation():
                         
                 return completion_time[row_index], prev_demand_job_completion_time[num_job], prev_operation_completion_time[num_lot]
 
+
+            def line_index(machine, num_sequence):
+                line_index = self.machine_lotsize.index[(self.machine_lotsize['machine'] == machine
+                                                          & self.machine_lotsize['num_sequence'] == num_sequence)].tolist()
+                line_index = line_index[0]
+                return line_index
+
+
+            max_lotsize = self.machine_lotsize.at[line_index(machine), 'max_lotsize']
+            min_lotsize = self.machine_lotsize.at[line_index(machine), 'min_lotsize']
+            
             # Max lot size in machine = 1 and min lotsize =1
             if (max_lotsize == 1) and (min_lotsize == 1):
                 completion_time[row_index],\
@@ -210,6 +211,22 @@ class FitnessCalculation():
                                 prev_row_index = None
                             if prev_row_index != None:
                                 if completion_time[prev_row_index] < completion_time[row_index]:
+                                    group_row_num_lot = group_row['num_lot']
+                                    group_num_job = group_row['num_job']
+                                    completion_time[group_row_index] = completion_time[row_index]
+                                    prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
+                                    prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
+                                    lot_size +=1
+                                    num_assign_max_lotsize[group_row_index] +=1
+                            else:
+                                try:
+                                    group_row_num_lot = group_row['num_lot']
+                                    prev_row_index = observation.index[(observation['num_lot'] == group_row_num_lot)
+                                                                        & (observation['operation'] == prev_operation)].tolist()[0]
+                                except:
+                                    prev_row_index = None
+                                
+                                if (prev_row_index == None):
                                     group_row_num_lot = group_row['num_lot']
                                     group_num_job = group_row['num_job']
                                     completion_time[group_row_index] = completion_time[row_index]

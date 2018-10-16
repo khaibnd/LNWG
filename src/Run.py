@@ -2,7 +2,7 @@
 import io
 import pstats
 import cProfile
-import sys
+import site
 import pandas as pd
 from copy import deepcopy
 from timeit import default_timer as timer
@@ -10,6 +10,7 @@ from timeit import default_timer as timer
 
 from src.data.data import DataInput
 from src.data.data import DataOutput
+from src.data.data import ExcelFile
 from src.initial_solution.initial_solution import InitialSolution
 from src.selection.selection import ChrosKWaySelection
 from src.crossover.crossover import ChrosCrossover
@@ -36,10 +37,17 @@ class main():
         self.sequence,\
         self.machine,\
         self.machine_criteria,\
+        self.machine_lotsize,\
         self.processing_time,\
         self.wip,\
         self.finished_goods = DataInput().data_reader(INPUT_FILE_LINK)
-
+    def delete_old_files(self):
+        ExcelFile.file_remove(self, OUTPUT_FILE_LINK)
+        ExcelFile.file_remove(self, INITIAL_OUTPUT)
+        ExcelFile.file_remove(self, SELECTION_OUTPUT)
+        ExcelFile.file_remove(self, CROSSOVER_OUTPUT)
+        ExcelFile.file_remove(self, ITERATION_OUTPUT)
+        ExcelFile.file_remove(self, CPROFILE_LOG)
 
     def main_run(self):
         '''Main function to get output'''
@@ -55,50 +63,35 @@ class main():
                                       self.machine,
                                       self.sequence)
         self.population_dict = LoadInitial.generate_initial_population()
-        
-        d = deepcopy(self.population_dict)
-        writer = pd.ExcelWriter(INITIAL_OUTPUT)
-        for i in range(20):
-            e = d[i]
-            e.to_excel(writer, sheet_name='s_%s' %i)
-            writer.save()
-        writer.save()
-        initial_finished_time = timer() - program_start
+        DataOutput.operation_output_writer(self, INITIAL_OUTPUT)
 
+        initial_finished_time = timer() - program_start
         print('Initial Solution Generated')
+
         iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time']
         iteration_record = pd.DataFrame(columns=iteration_record_columns)
+
         for iteration in range(num_iteration):
             iteration_start = timer()
             print('iteration#:',iteration)
+
             # k-way selection
-            
             self.population_dict = ChrosKWaySelection.generate_df_selection(self, iteration)
-            d = deepcopy(self.population_dict)
-            writer = pd.ExcelWriter(SELECTION_OUTPUT)
-            for i in range(20):
-                e = d[i]
-                e.to_excel(writer, sheet_name='s_%s' %i)
-                writer.save()
-            writer.save()
-            
+            # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
             print('k-way selection Generated')
+
             # crossover
             self.population_dict = ChrosCrossover.chros_crossover(self)
             print('Crossover Generated')
+
             #mutation
             self.population_dict = ChrosMutation.chros_mutation(self)
-            writer = pd.ExcelWriter(MUTATION_OUTPUT)
-            for i in range(20):
-                e = d[i]
-                e.to_excel(writer, sheet_name='s_%s' %i)
-                writer.save()
-            writer.save()
+            # DataOutput.operation_output_writer(self, MUTATION_OUTPUT)
             print('Mutation Generated')
-            
+
             # fitness calculation to find the optimal solution
             local_tardiness_list = []
-            
+
             for num_observation, observation in iter(self.population_dict.items()):
                 local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
                 self.population_tardiness_dict[num_observation] = local_tardiness
@@ -122,6 +115,7 @@ class main():
             iteration_record = iteration_record.append(new_row_iteration_record, ignore_index=True)
             
             DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, iteration_record, best_solution)
+
         # Adding timeline to best solution
         genetic_finished_time = timer() - program_start
         
@@ -139,7 +133,8 @@ if __name__ == '__main__':
     profile_program = cProfile.Profile()
     profile_program.enable()
     main = main()
-    main_run = main.main_run()
+    main.delete_old_files()
+    main.main_run()
     profile_program.disable()
     written_data = io.StringIO()
     line_written_data = pstats.Stats(profile_program,
