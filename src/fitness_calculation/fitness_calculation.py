@@ -211,9 +211,6 @@ class FitnessCalculation():
                                 groupable_condition = True
                                 return groupable_condition
 
-                            
-                        
-
                         if (check_groupable_condition(self) == True):
                             prev_operation = FitnessCalculation.prev_part_sequence_operation(self,
                                                                                          part,
