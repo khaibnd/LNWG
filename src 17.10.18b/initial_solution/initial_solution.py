@@ -67,7 +67,7 @@ class InitialSolution():
         for demand in demand_index:
             for sequence in self.sequence_type:
                 try:
-                    num_lot_each_sequence.loc[demand, sequence] = int(num_lot_required[demand] * self.demand.at[demand, sequence])
+                    num_lot_each_sequence.loc[demand, sequence] = int(round(num_lot_required[demand] * self.demand.at[demand, sequence],0))
                 except:
                     num_lot_each_sequence.loc[demand, sequence] = np.nan
         return num_lot_each_sequence

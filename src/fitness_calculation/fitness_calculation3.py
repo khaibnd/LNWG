@@ -191,34 +191,32 @@ class FitnessCalculation():
                     # Step 6.2.1 : Check total lot per run in machine should lower than maximum.
                     if lot_size < max_lotsize:
                         
-                        def check_groupable_condition(self):
-                            groupable_condition = False
+                        def groupable_condition(self):
                             if (group_row['operation'] == 'coat' and
                                 group_row['machine'] == machine):
                                 coat_design = self.criteria.loc[self.criteria.part == part, 'coat_design'].values[0]
                                 group_part = group_row['part']
                                 group_coat_design = self.criteria.loc[self.criteria.part == group_part, 'coat_design'].values[0]
-
                                 if group_coat_design == coat_design:
-                                    groupable_condition = True
-                                    return groupable_condition
-
+                                    return True
+                                else:
+                                    return False
                             elif (group_row['part'] == part and
                                   group_row['operation'] == operation and
                                   group_row['operation'] != 'coat' and
                                   group_row['machine'] == machine and
                                   group_row['num_sequence'] == num_sequence):
-                                groupable_condition = True
-                                return groupable_condition
-
+                                return True
+                            else:
+                                return False
                             
-                        
-
-                        if (check_groupable_condition(self) == True):
-                            prev_operation = FitnessCalculation.prev_part_sequence_operation(self,
+                        prev_operation = FitnessCalculation.prev_part_sequence_operation(self,
                                                                                          part,
                                                                                          operation,
                                                                                          num_sequence)
+
+                        if (groupable_condition(self) == True):
+
                             # Step 6.2.1.2.1: The group index is first operation of sequence
                             if prev_operation == None:
                                 print('First operation')

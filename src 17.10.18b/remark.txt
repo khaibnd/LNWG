@@ -1,0 +1,44 @@
+1. Lựa chọn lot tôt ngay từ đầu hay lựa chọn khi vào GA
+==> Ngay từ đầu. Đã điều chỉnh nhưng cần improve hơn nữa
+
+2. Vấn đề random vị trí của từng chromosom
+==> Đã giải quyết, tuy nhiên cần làm ngắn gọn hơn bằng cách giảm vòng lặp for
+
+3. Sắp xếp vị trí phù hợp sequence từng part.
+==> Mỗi part có 1 sequence sản xuất khác nhau, cần sắp xếp lại cho có trật tự để run fitness
+Có cách giải quyết, nhưng chưa tối ưu ( sử dụng:
+sub_df_per_lot['operation'] = pd.Categorical(sub_df_per_lot['operation'], part_sequence)
+sub_df_per_lot = sub_df_per_lot.sort_values('operation')
+
+4. Bị trục trặc khi assign machine cho công đoạn fabrication,
+lỗi phát sinh khi ko có processing time cho machine (Done)
+
+5. Hiện tại, population size phải chẵn, nếu không chẵn thì xử lý ở selection như thế nào?
+
+6. Vấn đề gộp max 4 lot tại máy tsk_1 nếu các part giống nhau (Quan trọng vì ảnh hưởng mạnh tới production leadtime)
+Xét thêm if trong fitness_cleculation???
+
+7. Ko đổi giá trị makespan trong lúc chạy hàng (Selection có vấn đề và biến dị ko đạt như y/c)
+Vấn đề code python call về giá trị cũ mà ko có sự thay đổi
+
+8.  Xét tardiness thay vì makespan (Done)
+
+9. Lỗi asign máy trong initial solution  không lấy random
+
+10. random sample của selection bị lặp lại (random without replacement dictionary python)
+
+11. Working time: 6h00-10h00, trừ chủ nhật
+
+print('Ojob: %s group %s' %(job, group_lot))
+
+12. and vs & 
+
+13. Nhớ thêm điều kiện gộp lot khi none
+
+14. Gộp lot ở Coating theo Coat Design
+
+unicorn
+favicon
+decorator: biến hello thanh 1 hello mới và gán lại vào def hello
+(check python glossary--> decorator)
+ORM: object relation mapper --> FlaskAlchemy
