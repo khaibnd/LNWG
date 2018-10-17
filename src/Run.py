@@ -95,12 +95,14 @@ class main():
             for num_observation, observation in iter(self.population_dict.items()):
                 local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
                 self.population_tardiness_dict[num_observation] = local_tardiness
-                print(local_tardiness)
+                print('o_%s: %s' %(num_observation,local_tardiness))
                 local_tardiness_list.append(local_tardiness)
                 if local_tardiness < best_tardiness:
                     best_tardiness = deepcopy(local_tardiness)
                     best_solution = deepcopy(observation)
                     print('best local tardiness: ', best_tardiness)
+                else:
+                    pass
             worst_tardiness = max(local_tardiness_list)
             best_tardiness = min(local_tardiness_list)
             global_best_tardiness = best_tardiness

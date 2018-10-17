@@ -166,13 +166,16 @@ class FitnessCalculation():
             
             # Max lot size in machine = 1 and min lotsize =1
             if (max_lotsize == 1) and (min_lotsize == 1):
+                print(machine, max_lotsize)
                 completion_time[row_index],\
                 prev_demand_job_completion_time[num_job],\
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
 
                 
             # Max lot size in machine > 1 and min lotsize =1
-            elif (min_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0) and (num_assign_min_lotsize[row_index] == 0):
+            elif (min_lotsize == 1) and (max_lotsize > 1) and
+                (num_assign_max_lotsize[row_index] == 0) and
+                (num_assign_min_lotsize[row_index] == 0):
                 lot_size = 1
                 completion_time[row_index],\
                 prev_demand_job_completion_time[num_job],\

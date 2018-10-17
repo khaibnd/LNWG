@@ -4,7 +4,6 @@ from copy import deepcopy
 import sta
 import pandas as pd
 import numpy as np
-from math import isnan
 
 
 global Stop
@@ -118,7 +117,7 @@ class InitialSolution():
                 available_jobs = selected_job_list.loc[part, num_sequence]
                 for _ in range(total_lot):
                     # lot num select
-                    if available_jobs != []:
+                    if available_jobs != [] and available_jobs != None:
                         selected_job_list_sequence_index = []
                         for j in available_jobs:
                             curent_job_operation = self.wip.loc[self.wip.job_num == j,'operation'].values[0]

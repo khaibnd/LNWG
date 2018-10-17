@@ -1,6 +1,5 @@
 '''k-way seletion of GA'''
 import random
-import numpy as np
 from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 
