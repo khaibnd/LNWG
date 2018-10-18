@@ -107,6 +107,7 @@ class ChrosMutation():
                                 return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
+                        print('new', new_packing_index_list)
                         for i in range(len(new_packing_index_list)):
                             temp_df = pd.DataFrame()
                             new_idx = new_packing_index_list[i]
@@ -117,12 +118,15 @@ class ChrosMutation():
                             delete_lot = group_num_sequence.at[old_idx, 'num_lot']
                             delete_df = group_num_sequence[group_num_sequence.num_lot == delete_lot].copy()
                             
-                            for _, fwd_row in forward_df.iterrows():
+                            for fwd_row_idx, fwd_row in forward_df.iterrows():
                                 for bwd_row_idx, bwd_row in delete_df.iterrows():
                                     if fwd_row['operation'] == bwd_row['operation']:
+                                        fwd_row['start_time'] = bwd_row['start_time']
+                                        fwd_row['completion_time'] = bwd_row['completion_time']
                                         new_df = pd.DataFrame({bwd_row_idx : fwd_row})
                                         new_df = new_df.T
                                         temp_df = temp_df.append(new_df)
+                            print('temp', temp_df)
         
                             observation.update(temp_df)
 
