@@ -22,7 +22,7 @@ from src.gantt.plotly_gantt import PlotlyGantt
 if os.path.isdir('/Users/khaibnd/eclipse-workspace/LNWG4/src/data/'):
     FOLDER = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/'
 else:
-    FOLDER = r'C:\Users\khai.bui\Desktop\Operations\5. Eclipse\LNWG\src\data'
+    FOLDER = r'C:\\Users\\khai.bui\\Desktop\\Operations\\5. Eclipse\\LNWG\\src\\data\\'
     
 INPUT_FILE_LINK = FOLDER + 'input.xlsx'
 OUTPUT_FILE_LINK = FOLDER + 'output.xlsx'
@@ -79,7 +79,7 @@ class main():
 
         for iteration in range(num_iteration):
             iteration_start = timer()
-            print('iteration#:',iteration)
+            print('Iteration#:',iteration)
 
             # k-way selection
             self.population_dict = ChrosKWaySelection.generate_df_selection(self, iteration)

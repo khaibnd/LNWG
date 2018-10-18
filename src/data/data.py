@@ -154,3 +154,34 @@ class ExcelFile():
         from os import path, remove
         if path.exists(file_link):
             remove(file_link)
+
+
+'''
+                                if length > 1:
+                                for i in range(length):
+                                    for j in range(0, length - i - 1):
+                                        if group_num_sequence.at[packing_index_list[j], 'num_job'] > group_num_sequence.at[packing_index_list[j + 1], 'num_job']:
+                                            print(group_num_sequence.at[packing_index_list[j], 'num_job'])
+                                            print(group_num_sequence.at[packing_index_list[j+1], 'num_job'])
+                                                                        
+                                            packing_index_list[j], packing_index_list[j + 1] = packing_index_list[j + 1], packing_index_list[j]
+                                            
+                                forward_lot = group_num_sequence.at[packing_index_list[j], 'num_lot']
+                                backward_lot =group_num_sequence.at[packing_index_list[j + 1], 'num_lot']
+                                forward_df = group_num_sequence[group_num_sequence.num_lot == forward_lot].copy()
+                                backward_df = group_num_sequence[group_num_sequence.num_lot == backward_lot].copy()
+                                
+                                print('Foward lot %s. len = %s, Backward lot %s. len = %s' %(forward_lot,len(forward_df),
+                                                                                             backward_lot, len(backward_df)))
+
+                                
+                                for fwd_row_idx, fwd_row in forward_df.iterrows():
+                                    for bwd_row_idx, bwd_row in backward_df.iterrows():
+                                        if fwd_row['operation'] == bwd_row['operation']:
+
+                                            new_df = pd.DataFrame({fwd_row_idx : bwd_row,
+                                                                           bwd_row_idx :fwd_row})
+                                            new_df = new_df.T
+                                            #print(new_df)
+                                            observation.update(new_df)
+                                '''

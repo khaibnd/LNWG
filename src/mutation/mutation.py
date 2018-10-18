@@ -85,21 +85,45 @@ class ChrosMutation():
 
 
             # Intelligent Task Sort Mutation (IOAM)
-            # Chuyen cac taskcan lam xong xom len truoc
-            if IOAM > np.random.uniform(0, 1):
-                population_key_list = self.population_dict.keys()
-                prev_demand_job_completion_time,\
-                prev_operation_completion_time,\
-                completion_time = FitnessCalculation.calculate_finished_time(self, observation)
-                lot_completion_time = {job: 0
-                                   for job in observation.index}
-                num_lot_list = observation['num_lot'].unique()
-                lot_completion_time = {num_lot:
-                                        completion_time[row_index]
-                                      for row_index in population_key_list for num_lot in num_lot_list
-                                      if observation[row_index, observation['num_lot' == num_lot]] == 'packing'}
-                print(lot_completion_time)
+            # Chuyen cac taskcan lam xong som len truoc
+            if IOAM > np.random.uniform(0,1):
+                part_list = sorted(observation['part'].unique())
+                for part in part_list:
+                    group_part_job = observation.loc[observation.part == part]
+                    num_sequence_list = sorted(group_part_job['num_sequence'].unique())
+                    for num_sequence in num_sequence_list:
+                        group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
+                        packing_index_list = group_num_sequence.index[group_num_sequence.operation == 'packing'].tolist()
+                        print(packing_index_list)
+                        def quick_sort(PACKING_INDEX_LIST, group_num_sequence):
+                            '''Using code from github.com/TheAlgorithms/Python/blob/master/sorts/quick_sort.py'''
+                            length = len(PACKING_INDEX_LIST)
+                            if length <= 1:
+                                return PACKING_INDEX_LIST
+                            else:
+                                PIVOT = PACKING_INDEX_LIST[0]
+                                GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] > group_num_sequence.at[PIVOT, 'num_job']]
+                                LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] <= group_num_sequence.at[PIVOT, 'num_job']]
+                                return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
+                            
+                        new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
+                        for i in range(len(new_packing_index_list)):
+                            temp_df = pd.DataFrame()
+                            new_idx = new_packing_index_list[i]
+                            forward_lot = group_num_sequence.at[new_idx, 'num_lot']
+                            forward_df = group_num_sequence[group_num_sequence.num_lot == forward_lot].copy()
+                            
+                            old_idx = packing_index_list[i]
+                            delete_lot = group_num_sequence.at[old_idx, 'num_lot']
+                            delete_df = group_num_sequence[group_num_sequence.num_lot == delete_lot].copy()
+                            
+                            for _, fwd_row in forward_df.iterrows():
+                                for bwd_row_idx, bwd_row in delete_df.iterrows():
+                                    if fwd_row['operation'] == bwd_row['operation']:
+                                        new_df = pd.DataFrame({bwd_row_idx : fwd_row})
+                                        new_df = new_df.T
+                                        temp_df = temp_df.append(new_df)
+        
+                            observation.update(temp_df)
 
-                    
-            
         return self.population_dict

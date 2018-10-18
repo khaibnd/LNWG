@@ -295,7 +295,7 @@ class FitnessCalculation():
         prev_operation_completion_time, _, __ = FitnessCalculation.calculate_finished_time(self, observation)
         makespan = max(prev_operation_completion_time.values())
         return round(makespan, 1)
-    
+
     def calculate_weighted_tardiness(self, observation):
         '''Calculate Demand total Weight Tardiness'''
         weighted_tardiness = 0
@@ -305,7 +305,3 @@ class FitnessCalculation():
         for key in prev_demand_job_completion_time:
             weighted_tardiness += (prev_demand_job_completion_time[key] - lead_time[key] * 24) * demand_weight[key]
         return round(weighted_tardiness, 1)
-
-if __name__=='__main__':
-    fitness = FitnessCalculation()
-    tardiness = fitness.calculate_weighted_tardiness(self, self.observation)
