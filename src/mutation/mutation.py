@@ -121,8 +121,6 @@ class ChrosMutation():
                             for fwd_row_idx, fwd_row in forward_df.iterrows():
                                 for bwd_row_idx, bwd_row in delete_df.iterrows():
                                     if fwd_row['operation'] == bwd_row['operation']:
-                                        fwd_row['start_time'] = bwd_row['start_time']
-                                        fwd_row['completion_time'] = bwd_row['completion_time']
                                         new_df = pd.DataFrame({bwd_row_idx : fwd_row})
                                         new_df = new_df.T
                                         temp_df = temp_df.append(new_df)
