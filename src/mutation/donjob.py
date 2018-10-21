@@ -99,20 +99,7 @@ def main(link, IOAM):
         temp_full = temp_full.reset_index(drop=True)
         
         excel_writer(temp_full, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/temp_full.xlsx','temp_full')
-        
-        '''
-        delete_list =[]
-        for trow_idx, trow in temp_full.iterrows():
-            for row_idx, row in observation.iterrows():
-                if trow.equals(row):
-                    print(row_idx)
-                    delete_list.append(row_idx)
-                    
-        print(delete_list)
-        observation = observation.drop(observation.index[delete_list])
-            #observation.update(temp_df)
-        print('observation_list', observation_list)
-        '''
+
     lot_list = temp_full['num_lot'].unique()
     for lot in lot_list:
         num = len(temp_full[temp_full['num_lot']==lot])

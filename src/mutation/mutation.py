@@ -80,22 +80,24 @@ class ChrosMutation():
                     
                 observation = child
                 
-            observation = InitialSolution.observation_sequence_sort(self, observation)
-            self.population_dict[parent_index] = observation
+                observation = InitialSolution.observation_sequence_sort(self, observation)
+                self.population_dict[parent_index] = observation
 
 
             # Intelligent Task Sort Mutation (IOAM)
             # Chuyen cac taskcan lam xong som len truoc
             if IOAM > np.random.uniform(0,1):
                 part_list = sorted(observation['part'].unique())
+                observation_list = observation.index.tolist()
+                leftover_df = pd.DataFrame()
+                temp_df = pd.DataFrame()
                 for part in part_list:
-                    group_part_job = observation.loc[observation.part == part]
+                    group_part_job = observation.loc[observation.part == part].copy()
                     num_sequence_list = sorted(group_part_job['num_sequence'].unique())
-                    temp_df = pd.DataFrame()
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
                         packing_index_list = group_num_sequence.index[group_num_sequence.operation == 'packing'].tolist()
-
+                        
                         def quick_sort(PACKING_INDEX_LIST, group_num_sequence):
                             '''Using code from github.com/TheAlgorithms/Python/blob/master/sorts/quick_sort.py'''
                             length = len(PACKING_INDEX_LIST)
@@ -108,36 +110,36 @@ class ChrosMutation():
                                 return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
-                        temp_df = pd.DataFrame()
-
-                        for pack_idx in packing_index_list:
-                            new_pack_idx = new_packing_index_list.index(pack_idx)
-                            new_pack_idx = packing_index_list[new_pack_idx]
-
-                            old_lot = group_num_sequence.at[pack_idx, 'num_lot']
-                            old_df = group_num_sequence[group_num_sequence.num_lot == old_lot].copy().sort_index()
+        
+                        for idx in range(len(packing_index_list)):
+                            new_pack_idx = new_packing_index_list[idx]
+                            old_pack_idx = packing_index_list[idx]
+                            
+                            old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
+                            old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
                             
                             new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
-                            new_df = group_num_sequence[group_num_sequence.num_lot == new_lot].copy().sort_index()
-                            
+                            new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
                             get_length = min(len(old_df), len(new_df))
-                            if len(old_df) == get_length:
+                            if len(old_df) >= len(new_df):
                                 old_df = old_df[-get_length:]
+        
                             else:
+                                leftover_df = leftover_df.append(new_df[:- get_length])
                                 new_df = new_df[-get_length:]
-        
-                            for fwd_row_idx, fwd_row in old_df.iterrows():
-                                for bwd_row_idx, bwd_row in new_df.iterrows():
-                                    if fwd_row['operation'] == bwd_row['operation']:
-                                        fwd_row['start_time'] = bwd_row['start_time']
-                                        fwd_row['completion_time'] = bwd_row['completion_time']
-                                        new_df = pd.DataFrame({bwd_row_idx : fwd_row})
-                                        new_df = new_df.T
-                                        temp_df = temp_df.append(new_df)
-                        
-                        # print('temp', temp_df)
-        
-                    observation.update(temp_df)
+                                
+                            for _,new_row in new_df.iterrows():
+                                row_operation = new_row['operation']
+                                old_row_idx = old_df.index[old_df['operation'] == row_operation].tolist()[0]
+                                df = pd.DataFrame({old_row_idx : new_row})
+                                df = df.T
+                                temp_df = temp_df.append(df)
+                
+                temp_full = temp_df.append(leftover_df)
+                temp_full = temp_full.sort_index()
+                temp_full = temp_full.reset_index(drop=True)
+                self.population_dict[parent_index] = temp_full
+                
 
 
         return self.population_dict
