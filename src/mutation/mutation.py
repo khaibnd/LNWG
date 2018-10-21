@@ -91,10 +91,11 @@ class ChrosMutation():
                 for part in part_list:
                     group_part_job = observation.loc[observation.part == part]
                     num_sequence_list = sorted(group_part_job['num_sequence'].unique())
+                    temp_df = pd.DataFrame()
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
                         packing_index_list = group_num_sequence.index[group_num_sequence.operation == 'packing'].tolist()
-                        print(packing_index_list)
+
                         def quick_sort(PACKING_INDEX_LIST, group_num_sequence):
                             '''Using code from github.com/TheAlgorithms/Python/blob/master/sorts/quick_sort.py'''
                             length = len(PACKING_INDEX_LIST)
@@ -102,32 +103,41 @@ class ChrosMutation():
                                 return PACKING_INDEX_LIST
                             else:
                                 PIVOT = PACKING_INDEX_LIST[0]
-                                GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] > group_num_sequence.at[PIVOT, 'num_job']]
-                                LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] <= group_num_sequence.at[PIVOT, 'num_job']]
+                                GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] >= group_num_sequence.at[PIVOT, 'num_job']]
+                                LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] < group_num_sequence.at[PIVOT, 'num_job']]
                                 return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
-                        print('new', new_packing_index_list)
-                        for i in range(len(new_packing_index_list)):
-                            temp_df = pd.DataFrame()
-                            new_idx = new_packing_index_list[i]
-                            forward_lot = group_num_sequence.at[new_idx, 'num_lot']
-                            forward_df = group_num_sequence[group_num_sequence.num_lot == forward_lot].copy()
+                        temp_df = pd.DataFrame()
+
+                        for pack_idx in packing_index_list:
+                            new_pack_idx = new_packing_index_list.index(pack_idx)
+                            new_pack_idx = packing_index_list[new_pack_idx]
+
+                            old_lot = group_num_sequence.at[pack_idx, 'num_lot']
+                            old_df = group_num_sequence[group_num_sequence.num_lot == old_lot].copy().sort_index()
                             
-                            old_idx = packing_index_list[i]
-                            delete_lot = group_num_sequence.at[old_idx, 'num_lot']
-                            delete_df = group_num_sequence[group_num_sequence.num_lot == delete_lot].copy()
+                            new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
+                            new_df = group_num_sequence[group_num_sequence.num_lot == new_lot].copy().sort_index()
                             
-                            for fwd_row_idx, fwd_row in forward_df.iterrows():
-                                for bwd_row_idx, bwd_row in delete_df.iterrows():
+                            get_length = min(len(old_df), len(new_df))
+                            if len(old_df) == get_length:
+                                old_df = old_df[-get_length:]
+                            else:
+                                new_df = new_df[-get_length:]
+        
+                            for fwd_row_idx, fwd_row in old_df.iterrows():
+                                for bwd_row_idx, bwd_row in new_df.iterrows():
                                     if fwd_row['operation'] == bwd_row['operation']:
                                         fwd_row['start_time'] = bwd_row['start_time']
                                         fwd_row['completion_time'] = bwd_row['completion_time']
                                         new_df = pd.DataFrame({bwd_row_idx : fwd_row})
                                         new_df = new_df.T
                                         temp_df = temp_df.append(new_df)
-                            print('temp', temp_df)
+                        
+                        # print('temp', temp_df)
         
-                            observation.update(temp_df)
+                    observation.update(temp_df)
+
 
         return self.population_dict

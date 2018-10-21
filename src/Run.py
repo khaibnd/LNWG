@@ -82,6 +82,7 @@ class main():
             print('Iteration#:',iteration)
 
             # k-way selection
+            
             self.population_dict = ChrosKWaySelection.generate_df_selection(self, iteration)
             # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
             print('k-way selection Generated')
