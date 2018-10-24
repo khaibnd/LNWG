@@ -52,9 +52,9 @@ class InitialSolution():
         return sta(self.machine[self.machine.num_sequence == sequence][operation].values[0])
  
 
-
     def part_sequence(self, part, num_sequence):
-        part_sequence = self.sequence[(self.sequence.part == part) & (self.sequence.num_sequence == num_sequence)]
+        part_sequence = self.sequence[(self.sequence.part == part)
+                                      & (self.sequence.num_sequence == num_sequence)]
         part_sequence = part_sequence.dropna(axis=1, how='any')
         part_sequence = part_sequence.values.flatten().tolist()[2:]
         return part_sequence

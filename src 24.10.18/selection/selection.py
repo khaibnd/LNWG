@@ -31,18 +31,9 @@ class ChrosKWaySelection():
                                         calculate_weighted_tardiness(self,
                                                                      self.population_dict.get(num_observation))
                                         for num_observation in population_key_list}
-        try:
-            parent = {**self.population_dict, **old_population}
-            parent_tardiness = {**self.population_tardiness_dict, **old_population_tardiness}
-        except:
-            # for python <=3.4, PEP448
-            def merge_2_dicts(x, y):
-                z = x.copy()
-                z.update(y)
-                return z
 
-            parent = merge_2_dicts(self.population_dict, old_population)
-            parent_tardiness = merge_2_dicts(self.population_tardiness_dict, old_population_tardiness)
+        parent = {**self.population_dict, **old_population}
+        parent_tardiness = {**self.population_tardiness_dict, **old_population_tardiness}
 
         for new_num_observation in range(population_size):
             k_way_selection_dict = random.sample(parent_tardiness.items(),

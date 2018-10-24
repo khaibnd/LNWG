@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from src.initial_solution.initial_solution import InitialSolution
+from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 
 # pylint: disable=C0103
@@ -28,15 +29,18 @@ class ChrosMutation():
         '''Randomly selection machine for operation from list of num_machine'''
         machine_list = ChrosMutation.machine_list(self)
         return {operation: 0 for operation in machine_list}
-        
-    
+
 
     def chros_mutation(self):
         '''Make mutation'''
         ROAM = self.parameter[self.parameter.name == 'ROAM']['value'].values[0]
         OSSM = self.parameter[self.parameter.name == 'OSSM']['value'].values[0]
         OSSM_rate = int(self.parameter[self.parameter.name == 'OSSM_rate']['value'].values[0])
+        IJMM = self.parameter[self.parameter.name == 'IJMM']['value'].values[0]
+        IJMM_rate = int(self.parameter[self.parameter.name == 'IJMM_rate']['value'].values[0])
         ITSM = self.parameter[self.parameter.name == 'ITSM']['value'].values[0]
+
+
         for parent_index, observation in iter(self.population_dict.items()):
 
             # Random Operation Assignment Mutation (ROAM)
@@ -89,10 +93,103 @@ class ChrosMutation():
 
                     observation = InitialSolution.observation_sequence_sort(self, child)
 
+            
+            if IJMM > np.random.uniform(0,1):
+                IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
+                IJMM_pick_df = IJMM_pick_df.sort_index()
+                print(IJMM_pick_df)
+                for row_idx, row in IJMM_pick_df.iterrows():
+                    row_part = row['part']
+                    row_num_lot = row['num_lot']
+                    row_operation = row['operation']
+                    row_machine = row['machine']
+                    row_num_sequence = row['num_sequence']
+                    
+                    prev_row_operation = FitnessCalculation.prev_part_sequence_operation(self,
+                                                                                         row_part,
+                                                                                         row_operation,
+                                                                                         row_num_sequence)
+                    post_row_operation = FitnessCalculation.post_part_sequence_operation(self,
+                                                                                         row_part,
+                                                                                         row_operation,
+                                                                                         row_num_sequence)
+        
+                    print('prev_row_operation', prev_row_operation)
+                    print('row_operation', row_operation)
+                    print('post_row_operation', post_row_operation)
+                    try:
+                        row_min_idx = observation.index[(observation.num_lot == row_num_lot)
+                                                        & (observation.operation == prev_row_operation)].tolist()[0]
+                    except:
+                        row_min_idx = 0
+                    try:
+                        row_max_idx = observation.index[(observation.num_lot == row_num_lot)
+                                                        & (observation.operation == post_row_operation)].tolist()[0]
+                    except:
+                        row_max_idx = len(observation)
+        
+                    check_machine_df = observation.loc[(observation.machine == row_machine)
+                                                      & (observation.num_sequence == row_num_sequence)
+                                                      & (observation.index > row_min_idx)
+                                                      & (observation.index < row_max_idx)]
+                    
+                    df = pd.DataFrame()
+                    print('check_machine_df', check_machine_df)
+                    for check_row_idx, check_row in check_machine_df.iterrows():
+                        check_row_part = check_row['part']
+                        check_row_num_sequence = check_row['num_sequence']
+                        check_row_num_lot = check_row['num_lot']
+                        check_row_operation = check_row['operation']
+
+                        check_prev_row_operation = FitnessCalculation.prev_part_sequence_operation(self,
+                                                                                         check_row_part,
+                                                                                         check_row_operation,
+                                                                                         check_row_num_sequence)
+                        try:
+                            check_prev_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
+                                                        & (observation.operation == check_prev_row_operation)].tolist()[0]
+                        except:
+                            check_prev_row_operation_idx = None
+                        
+                        check_post_row_operation = FitnessCalculation.post_part_sequence_operation(self,
+                                                                                         check_row_part,
+                                                                                         check_row_operation,
+                                                                                         check_row_num_sequence)
+                        
+                        try:
+                            check_post_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
+                                                        & (observation.operation == check_post_row_operation)].tolist()[0]
+                        except:
+                            check_post_row_operation_idx = None
+
+                        if ((check_prev_row_operation_idx == None) and
+                            (check_post_row_operation_idx == None)):
+                            df = df.append(check_row)
+
+                        elif (check_post_row_operation_idx != None):
+                            if ((check_prev_row_operation_idx == None) and
+                                (check_post_row_operation_idx < row_idx)):
+                                df = df.append(check_row)
+
+                        elif (check_prev_row_operation_idx != None):
+                            if ((check_post_row_operation_idx == None) and
+                                (check_prev_row_operation_idx < row_idx)):
+                                df = df.append(check_row)
+                    if(len(df) > 2):
+                        max_idx = df['num_job'].idxmax()
+                        min_idx = df['num_job'].idxmin()
+                        #print(df[['machine']])
+                        print(max_idx, min_idx)
+    
+                        temp_df = pd.DataFrame({max_idx : observation.loc[min_idx],
+                                   min_idx : observation.loc[max_idx]})
+                        temp_df = temp_df.T
+                        observation.update(temp_df)
+            observation = observation.sort_index()
 
             # Intelligent Task Sort Mutation (ITSM)
             if ITSM > np.random.uniform(0,1):
-                part_list = observation['part'].unique()
+                part_list = observation.part.unique()
                 leftover_df = pd.DataFrame()
                 temp_df = pd.DataFrame()
                 for part in part_list:
@@ -101,7 +198,7 @@ class ChrosMutation():
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
                         packing_index_list = group_num_sequence.index[group_num_sequence.operation == 'packing'].tolist()
-                        
+
                         def quick_sort(PACKING_INDEX_LIST, group_num_sequence):
                             '''Using code from github.com/TheAlgorithms/Python/blob/master/sorts/quick_sort.py'''
                             length = len(PACKING_INDEX_LIST)
@@ -112,36 +209,37 @@ class ChrosMutation():
                                 GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] >= group_num_sequence.at[PIVOT, 'num_job']]
                                 LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] < group_num_sequence.at[PIVOT, 'num_job']]
                                 return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
-                            
+
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
-        
+
                         for idx in range(len(packing_index_list)):
                             new_pack_idx = new_packing_index_list[idx]
                             old_pack_idx = packing_index_list[idx]
-                            
-                            old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
-                            old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
-                            
-                            new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
-                            new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
-                            get_length = min(len(old_df), len(new_df))
-                            if len(old_df) >= len(new_df):
-                                old_df = old_df[-get_length:]
-        
-                            else:
-                                leftover_df = leftover_df.append(new_df[:- get_length])
-                                new_df = new_df[-get_length:]
-                                
-                            for _,new_row in new_df.iterrows():
-                                row_operation = new_row['operation']
-                                old_row_idx = old_df.index[old_df['operation'] == row_operation].tolist()[0]
-                                df = pd.DataFrame({old_row_idx : new_row})
-                                df = df.T
-                                temp_df = temp_df.append(df)
-                
+                            if new_pack_idx != old_pack_idx:
+                                old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
+                                old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
+    
+                                new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
+                                new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
+                                get_length = min(len(old_df), len(new_df))
+                                if len(old_df) >= len(new_df):
+                                    old_df = old_df[-get_length:]
+    
+                                else:
+                                    leftover_df = leftover_df.append(new_df[:- get_length])
+                                    new_df = new_df[-get_length:]
+    
+                                for _,new_row in new_df.iterrows():
+                                    row_operation = new_row['operation']
+                                    old_row_idx = old_df.index[old_df['operation'] == row_operation].tolist()[0]
+                                    df = pd.DataFrame({old_row_idx : new_row})
+                                    df = df.T
+                                    temp_df = temp_df.append(df)
+
                 observation = temp_df.append(leftover_df)
                 observation = observation.sort_index()
                 observation = observation.reset_index(drop=True)
             self.population_dict[parent_index] = observation
 
         return self.population_dict
+

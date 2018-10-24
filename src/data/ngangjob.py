@@ -6,7 +6,7 @@ input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
 IJMM = 1
-IJMM_rate = 5
+IJMM_rate = 50
 
 
 def read_file(link):
@@ -19,9 +19,9 @@ def sequence_import(input_link):
     return sequence
     
 
-def excel_writer(obervation, file, sheet_name):
+def excel_writer(observation, file, sheet_name):
     writer = pd.ExcelWriter(file)
-    obervation.to_excel(writer, sheet_name)
+    observation.to_excel(writer, sheet_name)
     writer.save()
 
 def part_sequence(sequence, part, num_sequence):
@@ -37,15 +37,15 @@ def main(link, input_link, IJMM, IJMM_rate):
     if IJMM > np.random.uniform(0,1):
         sequence = sequence_import(input_link)
         
-        def prev_row_operation(part_sequence, operation):
+        def get_prev_row_operation(part_sequence, operation):
                 operation_index = part_sequence.index(operation)
-                try:
+                if operation_index - 1 > 0:
                     prev_row_operation = part_sequence[operation_index - 1]
-                except:
+                else:
                     prev_row_operation = None
                 return prev_row_operation
-        
-        def post_row_operation(part_sequence, operation):
+
+        def get_post_row_operation(part_sequence, operation):
                 operation_index = part_sequence.index(operation)
                 try:
                     post_row_operation = part_sequence[operation_index + 1]
@@ -54,6 +54,8 @@ def main(link, input_link, IJMM, IJMM_rate):
                 return post_row_operation
         
         IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
+        IJMM_pick_df = IJMM_pick_df.sort_index()
+        print(IJMM_pick_df)
         for row_idx, row in IJMM_pick_df.iterrows():
             row_part = row['part']
             row_num_job = row['num_job']
@@ -64,37 +66,78 @@ def main(link, input_link, IJMM, IJMM_rate):
             row_part_sequence = part_sequence(sequence, row_part, row_num_sequence)
 
             
-            prev_row_operation = prev_row_operation(row_part_sequence, row_operation)
-            post_row_operation = post_row_operation(row_part_sequence, row_operation)
-            
-            row_min_idx = observation.index[(observation.num_lot == row_num_lot)
-                                            & (observation.operation == prev_row_operation)]
-            
-            row_max_idx = observation.index[(observation.num_lot == row_num_lot)
-                                            & (observation.operation == post_row_operation)]
-            # post_operation = FitnessCalculation.post_part_sequence_operation(self, row_part, row_operation, row_num_sequence)
+            prev_row_operation = get_prev_row_operation(row_part_sequence, row_operation)
+            post_row_operation = get_post_row_operation(row_part_sequence, row_operation)
+
+            try:
+                row_min_idx = observation.index[(observation.num_lot == row_num_lot)
+                                                & (observation.operation == prev_row_operation)].tolist()[0]
+            except:
+                row_min_idx = 0
+            try:
+                row_max_idx = observation.index[(observation.num_lot == row_num_lot)
+                                                & (observation.operation == post_row_operation)].tolist()[0]
+            except:
+                row_max_idx = len(observation)
+
             check_machine_df = observation.loc[(observation.machine == row_machine)
                                               & (observation.num_sequence == row_num_sequence)
                                               & (observation.index > row_min_idx)
                                               & (observation.index < row_max_idx)]
-            row_operation_index = part_sequence.index(row_operation)
+            
             df = pd.DataFrame()
             for check_row_idx, check_row in check_machine_df.iterrows():
                 check_row_part = check_row['part']
                 check_row_num_sequence = check_row['num_sequence']
-                check_row_part_sequence = part_sequence(sequence, row_part, row_num_sequence)
+                check_row_num_lot = check_row['num_lot']
+                check_row_part_sequence = part_sequence(sequence, check_row_part, check_row_num_sequence)
                 check_row_operation = check_row['operation']
-                check_prev_row_operation = prev_row_operation(check_row_part_sequence, check_row_operation)
-                check_post_row_operation = post_row_operation(check_row_part_sequence, check_row_operation)
-                if check_prev_row_operation == None and
-                    check_post_row_operation == None:
-                    df = df.append(check_row)
-                elif check_prev_row_operation < row_idx or
-                    check_post_row_operation > row_idx:
+
+                check_prev_row_operation = get_prev_row_operation(check_row_part_sequence, check_row_operation)
+                try:
+                    check_prev_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
+                                                & (observation.operation == check_prev_row_operation)].tolist()[0]
+                except:
+                    check_prev_row_operation_idx = None
+                
+                check_post_row_operation = get_post_row_operation(check_row_part_sequence, check_row_operation)
+                
+                try:
+                    check_post_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
+                                                & (observation.operation == check_post_row_operation)].tolist()[0]
+                except:
+                    check_post_row_operation_idx = None
+                                
+                if ((check_prev_row_operation_idx == None) and
+                    (check_post_row_operation_idx == None)):
                     df = df.append(check_row)
 
+                elif (check_post_row_operation_idx != None):
+                    if ((check_prev_row_operation_idx == None) and
+                        (check_post_row_operation_idx < row_idx)):
+                        df = df.append(check_row)
+
+                elif (check_prev_row_operation_idx != None):
+                    if ((check_post_row_operation_idx == None) and
+                        (check_prev_row_operation_idx < row_idx)):
+                        df = df.append(check_row)
+                
+            if (len(df) > 2):
+                max_idx = df['num_job'].idxmax()
+                min_idx = df['num_job'].idxmin()
+                #print(df[['machine']])
+                print(max_idx, min_idx)
+    
+                temp_df = pd.DataFrame({max_idx : observation.loc[min_idx],
+                           min_idx : observation.loc[max_idx]})
+                temp_df = temp_df.T
+                print(temp_df)
+                observation.update(temp_df)
+                
+    excel_writer(observation, file_output, sheet_name='IJMM')
+    
     return observation
 
 if __name__ == '__main__':
     print('Start!!')
-    main = main(link, input_link, IJMM, IJMM_rate)
+    main(link, input_link, IJMM, IJMM_rate)
