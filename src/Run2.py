@@ -77,19 +77,14 @@ class main():
 
         iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time']
         iteration_record = pd.DataFrame(columns=iteration_record_columns)
-        
-        old_population = {}
-        old_population_tardiness = {}
+
         for iteration in range(num_iteration):
             iteration_start = timer()
             print('Iteration#:',iteration)
 
             # k-way selection
             
-            self.population_dict, old_population, old_population_tardiness = ChrosKWaySelection.generate_df_selection(self,
-                                                                                                                      iteration,
-                                                                                                                      old_population,
-                                                                                                                      old_population_tardiness)
+            self.population_dict = ChrosKWaySelection.generate_df_selection(self, iteration)
             # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
             print('k-way selection Generated')
 

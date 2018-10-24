@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from copy import deepcopy
 from src.initial_solution.initial_solution import InitialSolution
-from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 
 # pylint: disable=C0103
@@ -34,61 +33,66 @@ class ChrosMutation():
 
     def chros_mutation(self):
         '''Make mutation'''
-        population_size = self.parameter[self.parameter.name == 'population_size']['value']
         ROAM = self.parameter[self.parameter.name == 'ROAM']['value'].values[0]
-        IOAM = self.parameter[self.parameter.name == 'IOAM']['value'].values[0]
         OSSM = self.parameter[self.parameter.name == 'OSSM']['value'].values[0]
+        OSSM_rate = int(self.parameter[self.parameter.name == 'OSSM_rate']['value'].values[0])
+        ITSM = self.parameter[self.parameter.name == 'ITSM']['value'].values[0]
         for parent_index, observation in iter(self.population_dict.items()):
-            
-            # RHS Random Operation Assignment Mutation (ROAM)
-            if ROAM > np.random.uniform(0, 1):
 
-                df_ROAM_pick = observation.sample(int(population_size*ROAM),
-                                               replace=False)
-                for index, row in df_ROAM_pick.iterrows():
-                    num_sequence = row['num_sequence']
-                    operation = row['operation']
-                    machine_list = InitialSolution.generate_machine_list(self, num_sequence, operation)
+            # Random Operation Assignment Mutation (ROAM)
+            if ROAM > np.random.uniform(0,1):
+                observation_size = len(observation)
+                df_ROAM_pick = observation.sample(int(observation_size*ROAM),
+                                                        replace=False)
+                df_ROAM_pick = df_ROAM_pick.sort_index()
+                for row_idx, row in df_ROAM_pick.iterrows():
+                    row_num_sequence = row['num_sequence']
+                    row_operation = row['operation']
+                    observation_same_operation = observation.loc[(observation.operation == row_operation)
+                                                                 & (observation.num_sequence == row_num_sequence)]
+                    observation_same_operation_freq = observation_same_operation['machine'].value_counts()
 
-                # Replace different machine to the row
-                    self.population_dict[parent_index].loc[index, 'machine'] = random.choice(machine_list)
-        
+                    if observation_same_operation_freq.sum() > 0:
+                        assigned_machine = observation_same_operation_freq.idxmin()
+                        observation.loc[row_idx, 'machine'] = assigned_machine
+
 
             # Operations Sequence Shift Mutation (OSSM)
             if OSSM > np.random.uniform(0, 1):
-                OSSM_pick = observation.sample(n=1)
-                new_position_index = random.choice(range(observation.shape[0]))
-                child = pd.DataFrame(columns=['num_job',
-                                              'num_lot',
-                                              'part',
-                                              'operation',
-                                              'machine'])
-                # Swap position of OSSM pick to new random position in parent
-                if new_position_index > OSSM_pick.index.values[0]:
-                    child = child.append(observation.loc[:OSSM_pick.index.values[0]-1,:], ignore_index=True)
-                    child = child.append(observation.loc[OSSM_pick.index.values[0]+1:new_position_index,:], ignore_index=True)
-                    child = child.append(OSSM_pick, ignore_index=True)
-                    child = child.append(observation.loc[new_position_index+1:,:], ignore_index=True)
+                observation_size = len(observation)
+                observation_idx_list = list(range(0,observation_size))
+                df_OSSM_pick = random.sample(observation_idx_list, OSSM_rate)
+                df_OSSM_pick = sorted(df_OSSM_pick)
 
-                elif new_position_index < OSSM_pick.index.values[0]:
-                    child = child.append(observation.loc[0:new_position_index-1,:], ignore_index=True)
-                    child = child.append(OSSM_pick, ignore_index=True)
-                    child = child.append(observation.loc[new_position_index:OSSM_pick.index.values[0]-1,:], ignore_index=True)
-                    child = child.append(observation.loc[OSSM_pick.index.values[0]+1:,:], ignore_index=True)
-                else:
-                    child = observation
-                    
-                observation = child
-                
-                observation = InitialSolution.observation_sequence_sort(self, observation)
-                self.population_dict[parent_index] = observation
+                for row_idx in df_OSSM_pick:
+                    row = observation[observation.index==row_idx]
+                    new_row_idx = random.choice(range(observation.shape[0]))
+
+                    child = pd.DataFrame(columns=['num_job',
+                                                  'num_lot',
+                                                  'part',
+                                                  'operation',
+                                                  'machine'])
+        
+                    # Swap position of OSSM pick to new random position in parent
+                    if new_row_idx > row_idx:
+                        child = child.append(observation.loc[0:row_idx-1,:], ignore_index=True)
+                        child = child.append(observation.loc[row_idx +1:new_row_idx,:], ignore_index=True)
+                        child = child.append(row, ignore_index=True)
+                        child = child.append(observation.loc[new_row_idx+1:,:], ignore_index=True)
+            
+                    elif new_row_idx < row_idx:
+                        child = child.append(observation.loc[0:new_row_idx-1,:], ignore_index=True)
+                        child = child.append(row, ignore_index=True)
+                        child = child.append(observation.loc[new_row_idx:row_idx-1,:], ignore_index=True)
+                        child = child.append(observation.loc[row_idx+1:,:], ignore_index=True)
+
+                    observation = InitialSolution.observation_sequence_sort(self, child)
 
 
-            # Intelligent Task Sort Mutation (IOAM)
-            # Chuyen cac taskcan lam xong som len truoc
-            if IOAM > np.random.uniform(0,1):
-                part_list = sorted(observation['part'].unique())
-                observation_list = observation.index.tolist()
+            # Intelligent Task Sort Mutation (ITSM)
+            if ITSM > np.random.uniform(0,1):
+                part_list = observation['part'].unique()
                 leftover_df = pd.DataFrame()
                 temp_df = pd.DataFrame()
                 for part in part_list:
@@ -135,11 +139,9 @@ class ChrosMutation():
                                 df = df.T
                                 temp_df = temp_df.append(df)
                 
-                temp_full = temp_df.append(leftover_df)
-                temp_full = temp_full.sort_index()
-                temp_full = temp_full.reset_index(drop=True)
-                self.population_dict[parent_index] = temp_full
-                
-
+                observation = temp_df.append(leftover_df)
+                observation = observation.sort_index()
+                observation = observation.reset_index(drop=True)
+            self.population_dict[parent_index] = observation
 
         return self.population_dict

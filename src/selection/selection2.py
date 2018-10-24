@@ -16,14 +16,13 @@ class ChrosKWaySelection():
         self.iteration = iteration     
 
 
-    def generate_df_selection(self, iteration, old_population, old_population_tardiness):
+    def generate_df_selection(self, iteration):
         '''Selection the chromosones from population for k-way selection'''
 
         
         new_population = {}
         population_size = int(self.parameter[self.parameter.name == 'population_size']['value'])
         k_way_parameter = int(self.parameter[self.parameter.name == 'k_way']['value'])
-
         if iteration == 0:
             population_key_list = self.population_dict.keys()
             self.population_tardiness_dict = {num_observation:
@@ -31,12 +30,8 @@ class ChrosKWaySelection():
                                         calculate_weighted_tardiness(self,
                                                                      self.population_dict.get(num_observation))
                                         for num_observation in population_key_list}
-
-        parent = {**self.population_dict, **old_population}
-        parent_tardiness = {**self.population_tardiness_dict, **old_population_tardiness}
-
         for new_num_observation in range(population_size):
-            k_way_selection_dict = random.sample(parent_tardiness.items(),
+            k_way_selection_dict = random.sample(self.population_tardiness_dict.items(),
                                                  k_way_parameter)
             # Convert tuple to dict
             k_way_selection_dict = dict((x, y) for x, y in k_way_selection_dict)
@@ -44,10 +39,8 @@ class ChrosKWaySelection():
             min_k_way_selection_key = min(k_way_selection_dict,
                                           key=lambda key: k_way_selection_dict[key])
             # Append item to new population by index accending sequence
-            new_population[new_num_observation] = parent[min_k_way_selection_key]
-            old_population[new_num_observation + population_size] = parent[min_k_way_selection_key]
-            old_population_tardiness[new_num_observation] = min_k_way_selection_key
-        return new_population, old_population, old_population_tardiness
+            new_population[new_num_observation] = self.population_dict[min_k_way_selection_key]
+        return new_population
 
 
 if __name__ == '__main__':
