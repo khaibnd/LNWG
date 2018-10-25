@@ -59,6 +59,10 @@ class ChrosMutation():
                     if observation_same_operation_freq.sum() > 0:
                         assigned_machine = observation_same_operation_freq.idxmin()
                         observation.loc[row_idx, 'machine'] = assigned_machine
+            
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_a.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
 
 
             # Operations Sequence Shift Mutation (OSSM)
@@ -90,8 +94,15 @@ class ChrosMutation():
                         child = child.append(row, ignore_index=True)
                         child = child.append(observation.loc[new_row_idx:row_idx-1,:], ignore_index=True)
                         child = child.append(observation.loc[row_idx+1:,:], ignore_index=True)
+                    else:
+                        child = observation
+                    
+                    observation = child
+                observation = InitialSolution.observation_sequence_sort(self, observation)
 
-                    observation = InitialSolution.observation_sequence_sort(self, child)
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_b.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
 
             # Inteligent Job Machinr Mutation (IJMM)            
             if IJMM > np.random.uniform(0,1):
@@ -227,7 +238,12 @@ class ChrosMutation():
                 temp_full = temp_df.append(leftover_df)
                 temp_full = temp_full.sort_index()
                 temp_full = temp_full.reset_index(drop=True)
-                
+                temp_full['num_lot'] = temp_full['num_lot'].astype(int)
+                observation.update(temp_full)
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_d.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            
             self.population_dict[parent_index] = temp_full
 
         return self.population_dict
