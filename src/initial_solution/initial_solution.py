@@ -95,6 +95,7 @@ class InitialSolution():
             observation = observation.append(sub_df_per_lot)
             # Sort Dataframe by accending index
         observation = observation.sort_index()
+        observation['num_job'] = observation['num_job'].astype(int)
         return observation
 
 

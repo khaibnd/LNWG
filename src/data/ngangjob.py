@@ -6,7 +6,7 @@ input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
 IJMM = 1
-IJMM_rate = 531
+IJMM_rate = 100
 
 
 def read_file(link):
@@ -58,7 +58,6 @@ def main(link, input_link, IJMM, IJMM_rate):
         print(IJMM_pick_df)
         for row_idx, row in IJMM_pick_df.iterrows():
             row_part = row['part']
-            row_num_job = row['num_job']
             row_num_lot = row['num_lot']
             row_operation = row['operation']
             row_machine = row['machine']
@@ -84,7 +83,10 @@ def main(link, input_link, IJMM, IJMM_rate):
                                               & (observation.num_sequence == row_num_sequence)
                                               & (observation.index > row_min_idx)
                                               & (observation.index < row_max_idx)]
+            print(row_min_idx)
+            print(row_max_idx)
             
+            print('check_machine_df', check_machine_df)
             df = pd.DataFrame()
             for check_row_idx, check_row in check_machine_df.iterrows():
                 check_row_part = check_row['part']
@@ -111,24 +113,13 @@ def main(link, input_link, IJMM, IJMM_rate):
                 if ((check_prev_row_operation_idx == None) and
                     (check_post_row_operation_idx == None)):
                     df = df.append(check_row)
-
-                elif (check_post_row_operation_idx != None):
-                    if ((check_prev_row_operation_idx == None) and
-                        (check_post_row_operation_idx < row_idx)):
-                        df = df.append(check_row)
-
-                elif (check_prev_row_operation_idx != None):
-                    if ((check_post_row_operation_idx == None) and
-                        (check_prev_row_operation_idx < row_idx)):
-                        df = df.append(check_row)
-                
             
             if (len(df) >= 2):
-                print(df[['num_job', 'part', 'machine', 'num_lot']])
+                print(df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
                 df_idx = df.index.tolist()
                 df = df.sort_values(['num_job'])
                 df.index = df_idx
-                print('new',df[['num_job', 'part', 'machine', 'num_lot']])
+                print('new',df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
             observation.update(df)
     excel_writer(observation, file_output, sheet_name='IJMM')
     

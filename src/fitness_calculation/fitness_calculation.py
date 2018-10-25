@@ -14,9 +14,12 @@ class FitnessCalculation():
     def prev_part_sequence_operation(self, part, operation, num_sequence):
         part_sequence = InitialSolution.part_sequence(self, part, num_sequence)
         operation_index = part_sequence.index(operation)
-        try:
-            prev_part_sequence_operation = part_sequence[operation_index - 1]
-        except:
+        if (operation_index - 1 >= 0):
+            try:
+                prev_part_sequence_operation = part_sequence[operation_index - 1]
+            except:
+                prev_part_sequence_operation = None
+        else:
             prev_part_sequence_operation = None
         return prev_part_sequence_operation
 
