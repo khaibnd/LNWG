@@ -46,7 +46,7 @@ class ChrosMutation():
             # Random Operation Assignment Mutation (ROAM)
             if ROAM > np.random.uniform(0,1):
                 observation_size = len(observation)
-                df_ROAM_pick = observation.sample(int(observation_size*ROAM),
+                df_ROAM_pick = observation.sample(int(observation_size * ROAM),
                                                         replace=False)
                 df_ROAM_pick = df_ROAM_pick.sort_index()
                 for row_idx, row in df_ROAM_pick.iterrows():
@@ -70,7 +70,7 @@ class ChrosMutation():
 
                 for row_idx in df_OSSM_pick:
                     row = observation[observation.index==row_idx]
-                    new_row_idx = random.choice(range(observation.shape[0]))
+                    new_row_idx = random.choice(range(0, observation_size))
 
                     child = pd.DataFrame(columns=['num_job',
                                                   'num_lot',
@@ -94,10 +94,10 @@ class ChrosMutation():
                     observation = InitialSolution.observation_sequence_sort(self, child)
 
             
-            if IJMM > np.random.uniform(0,1):
+            if 1 > np.random.uniform(0,1):
                 IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
                 IJMM_pick_df = IJMM_pick_df.sort_index()
-                print(IJMM_pick_df)
+                print('mutation observation:',observation[['num_job', 'part', 'machine']])
                 for row_idx, row in IJMM_pick_df.iterrows():
                     row_part = row['part']
                     row_num_lot = row['num_lot']
@@ -114,9 +114,6 @@ class ChrosMutation():
                                                                                          row_operation,
                                                                                          row_num_sequence)
         
-                    print('prev_row_operation', prev_row_operation)
-                    print('row_operation', row_operation)
-                    print('post_row_operation', post_row_operation)
                     try:
                         row_min_idx = observation.index[(observation.num_lot == row_num_lot)
                                                         & (observation.operation == prev_row_operation)].tolist()[0]
@@ -134,7 +131,6 @@ class ChrosMutation():
                                                       & (observation.index < row_max_idx)]
                     
                     df = pd.DataFrame()
-                    print('check_machine_df', check_machine_df)
                     for check_row_idx, check_row in check_machine_df.iterrows():
                         check_row_part = check_row['part']
                         check_row_num_sequence = check_row['num_sequence']
@@ -175,26 +171,32 @@ class ChrosMutation():
                             if ((check_post_row_operation_idx == None) and
                                 (check_prev_row_operation_idx < row_idx)):
                                 df = df.append(check_row)
-                    if(len(df) > 2):
-                        max_idx = df['num_job'].idxmax()
-                        min_idx = df['num_job'].idxmin()
-                        #print(df[['machine']])
-                        print(max_idx, min_idx)
-    
-                        temp_df = pd.DataFrame({max_idx : observation.loc[min_idx],
-                                   min_idx : observation.loc[max_idx]})
-                        temp_df = temp_df.T
-                        observation.update(temp_df)
-            observation = observation.sort_index()
+                    if (len(df) >= 2):
+                        print(df[['num_job', 'part', 'machine']])
+                        df_idx = df.index.values
+                        df = df.sort_values(['num_job'])
+                        df.num_job = df.num_job.astype(int)
+                        df.index = df_idx
+                        print('new',df[['num_job', 'part', 'machine']])
+                        observation.update(df)
+
 
             # Intelligent Task Sort Mutation (ITSM)
             if ITSM > np.random.uniform(0,1):
                 part_list = observation.part.unique()
-                leftover_df = pd.DataFrame()
-                temp_df = pd.DataFrame()
+                leftover_df = pd.DataFrame(columns=['num_job',
+                                                  'num_lot',
+                                                  'part',
+                                                  'operation',
+                                                  'machine'])
+                temp_df = pd.DataFrame(columns=['num_job',
+                                                  'num_lot',
+                                                  'part',
+                                                  'operation',
+                                                  'machine'])
                 for part in part_list:
                     group_part_job = observation.loc[observation.part == part].copy()
-                    num_sequence_list = sorted(group_part_job['num_sequence'].unique())
+                    num_sequence_list = sorted(group_part_job.num_sequence.unique())
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
                         packing_index_list = group_num_sequence.index[group_num_sequence.operation == 'packing'].tolist()
@@ -224,22 +226,30 @@ class ChrosMutation():
                                 get_length = min(len(old_df), len(new_df))
                                 if len(old_df) >= len(new_df):
                                     old_df = old_df[-get_length:]
-    
                                 else:
                                     leftover_df = leftover_df.append(new_df[:- get_length])
                                     new_df = new_df[-get_length:]
     
-                                for _,new_row in new_df.iterrows():
+                                for new_row_idx ,new_row in new_df.iterrows():
+                                    # print('new_row_idx', new_row_idx)
                                     row_operation = new_row['operation']
-                                    old_row_idx = old_df.index[old_df['operation'] == row_operation].tolist()[0]
-                                    df = pd.DataFrame({old_row_idx : new_row})
-                                    df = df.T
-                                    temp_df = temp_df.append(df)
+                                    # print('row_operation', row_operation)
+                                    # print('old_df', old_df)
+                                    # print('new_df', new_df)
+                                    try:
+                                        old_row_idx = old_df.index[old_df.operation == row_operation].tolist()[0]
+                                        # print('old_row_idx', old_row_idx)
+                                        df = pd.DataFrame({old_row_idx : new_row})
+                                        df = df.T
+                                        temp_df = temp_df.append(df)
+                                    except:
+                                        pass
 
-                observation = temp_df.append(leftover_df)
-                observation = observation.sort_index()
-                observation = observation.reset_index(drop=True)
-            self.population_dict[parent_index] = observation
+                temp_df = temp_df.append(leftover_df)
+                temp_df = temp_df.sort_index()
+                temp_df = temp_df.reset_index(drop=True)
+                observation.update(temp_df)
+        self.population_dict[parent_index] = observation
 
         return self.population_dict
 

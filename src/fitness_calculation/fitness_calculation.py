@@ -65,9 +65,9 @@ class FitnessCalculation():
  
     def calculate_finished_time(self, observation):
         '''Chua xem xet may tsk(Gop 4 lot)'''
-        demand_job_list = observation['num_job'].unique()
-        num_lot_list = observation['num_lot'].unique()
-        machine_list = observation['machine'].unique()
+        demand_job_list = observation.num_job.unique()
+        num_lot_list = observation.num_lot.unique()
+        machine_list = observation.machine.unique()
 
         num_assign_max_lotsize = {job: 0
                                    for job in observation.index}
@@ -399,7 +399,8 @@ class FitnessCalculation():
         demand_weight = self.demand['weight'].tolist()
         lead_time = self.demand['lead_time'].tolist()
         prev_demand_job_completion_time,_, __ = FitnessCalculation.calculate_finished_time(self, observation)
-        for key in prev_demand_job_completion_time:
-            if (prev_demand_job_completion_time[key] - lead_time[key] * 24) * demand_weight[key] > 0:
-                weighted_tardiness += (prev_demand_job_completion_time[key] - lead_time[key] * 24) * demand_weight[key]
+        for key, value in prev_demand_job_completion_time.items():
+            key = int(key)
+            if ((value - lead_time[key] * 24) * demand_weight[key]) > 0:
+                weighted_tardiness += ((value - lead_time[key] * 24) * demand_weight[key])
         return round(weighted_tardiness, 1)

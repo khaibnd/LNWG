@@ -6,7 +6,7 @@ input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
 IJMM = 1
-IJMM_rate = 50
+IJMM_rate = 531
 
 
 def read_file(link):
@@ -122,18 +122,14 @@ def main(link, input_link, IJMM, IJMM_rate):
                         (check_prev_row_operation_idx < row_idx)):
                         df = df.append(check_row)
                 
-            if (len(df) > 2):
-                max_idx = df['num_job'].idxmax()
-                min_idx = df['num_job'].idxmin()
-                #print(df[['machine']])
-                print(max_idx, min_idx)
-    
-                temp_df = pd.DataFrame({max_idx : observation.loc[min_idx],
-                           min_idx : observation.loc[max_idx]})
-                temp_df = temp_df.T
-                print(temp_df)
-                observation.update(temp_df)
-                
+            
+            if (len(df) >= 2):
+                print(df[['num_job', 'part', 'machine', 'num_lot']])
+                df_idx = df.index.tolist()
+                df = df.sort_values(['num_job'])
+                df.index = df_idx
+                print('new',df[['num_job', 'part', 'machine', 'num_lot']])
+            observation.update(df)
     excel_writer(observation, file_output, sheet_name='IJMM')
     
     return observation
