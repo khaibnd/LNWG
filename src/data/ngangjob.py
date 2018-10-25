@@ -6,7 +6,7 @@ input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
 IJMM = 1
-IJMM_rate = 100
+IJMM_rate = 1
 
 
 def read_file(link):
@@ -83,10 +83,11 @@ def main(link, input_link, IJMM, IJMM_rate):
                                               & (observation.num_sequence == row_num_sequence)
                                               & (observation.index > row_min_idx)
                                               & (observation.index < row_max_idx)]
+            review_df = observation[row_min_idx:row_max_idx]
             print(row_min_idx)
             print(row_max_idx)
             
-            print('check_machine_df', check_machine_df)
+            print('check_machine_df', check_machine_df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
             df = pd.DataFrame()
             for check_row_idx, check_row in check_machine_df.iterrows():
                 check_row_part = check_row['part']
@@ -97,16 +98,16 @@ def main(link, input_link, IJMM, IJMM_rate):
 
                 check_prev_row_operation = get_prev_row_operation(check_row_part_sequence, check_row_operation)
                 try:
-                    check_prev_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
-                                                & (observation.operation == check_prev_row_operation)].tolist()[0]
+                    check_prev_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
+                                                & (review_df.operation == check_prev_row_operation)].tolist()[0]
                 except:
                     check_prev_row_operation_idx = None
                 
                 check_post_row_operation = get_post_row_operation(check_row_part_sequence, check_row_operation)
                 
                 try:
-                    check_post_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
-                                                & (observation.operation == check_post_row_operation)].tolist()[0]
+                    check_post_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
+                                                & (review_df.operation == check_post_row_operation)].tolist()[0]
                 except:
                     check_post_row_operation_idx = None
                                 
@@ -118,6 +119,7 @@ def main(link, input_link, IJMM, IJMM_rate):
                 print(df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
                 df_idx = df.index.tolist()
                 df = df.sort_values(['num_job'])
+                df['num_job'] = df['num_job'].astype(int)
                 df.index = df_idx
                 print('new',df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
             observation.update(df)

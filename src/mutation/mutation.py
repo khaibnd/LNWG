@@ -98,7 +98,6 @@ class ChrosMutation():
                 
                 IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
                 IJMM_pick_df = IJMM_pick_df.sort_index()
-                print(IJMM_pick_df)
                 for row_idx, row in IJMM_pick_df.iterrows():
                     row_part = row['part']
                     row_num_lot = row['num_lot']
@@ -124,6 +123,7 @@ class ChrosMutation():
                                                       & (observation.index > row_min_idx)
                                                       & (observation.index < row_max_idx)]
                     
+                    review_df = observation[row_min_idx:row_max_idx]
                     df = pd.DataFrame()
                     for check_row_idx, check_row in check_machine_df.iterrows():
                         check_row_part = check_row['part']
@@ -134,16 +134,16 @@ class ChrosMutation():
         
                         check_prev_row_operation = FitnessCalculation.prev_part_sequence_operation(self, check_row_part, check_row_operation, check_row_num_sequence)
                         try:
-                            check_prev_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
-                                                        & (observation.operation == check_prev_row_operation)].tolist()[0]
+                            check_prev_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
+                                                        & (review_df.operation == check_prev_row_operation)].tolist()[0]
                         except:
                             check_prev_row_operation_idx = None
                         
                         check_post_row_operation = FitnessCalculation.post_part_sequence_operation(self, check_row_part, check_row_operation, check_row_num_sequence)
                         
                         try:
-                            check_post_row_operation_idx = check_machine_df.index[(observation.num_lot == check_row_num_lot)
-                                                        & (observation.operation == check_post_row_operation)].tolist()[0]
+                            check_post_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
+                                                        & (review_df.operation == check_post_row_operation)].tolist()[0]
                         except:
                             check_post_row_operation_idx = None
                                         
@@ -154,11 +154,15 @@ class ChrosMutation():
                     if (len(df) >= 2):
                         df_idx = df.index.tolist()
                         df = df.sort_values(['num_job'])
+                        df['num_job'] = df['num_job'].astype(int)
                         df.index = df_idx
 
                     observation.update(df)
-
-
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_c.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            
+            
             # Intelligent Task Sort Mutation (ITSM)
             if ITSM > np.random.uniform(0,1):
                 part_list = sorted(observation['part'].unique())
@@ -187,29 +191,32 @@ class ChrosMutation():
                         for idx in range(len(packing_index_list)):
                             new_pack_idx = new_packing_index_list[idx]
                             old_pack_idx = packing_index_list[idx]
-        
-                            print(old_pack_idx, new_pack_idx)
                             
-                            old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
-                            old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
+                            old_job = group_num_sequence.at[old_pack_idx, 'num_job']
+                            new_job = group_num_sequence.at[new_pack_idx, 'num_job']
                             
-                            new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
-                            new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
-                            get_length = min(len(old_df), len(new_df))
-                            if len(old_df) >= len(new_df):
-                                old_df = old_df[-get_length:]
+                            if old_job != new_job:
+                            
+                                print(old_pack_idx, new_pack_idx)
+                                old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
+                                old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
+                                
+                                new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
+                                new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
 
-                                for new_row_idx, new_row in new_df.iterrows():
-                                    new_opt = new_row['operation']
-                                    old_row_idx = old_df.index[old_df['operation'] == new_opt].tolist()[0]
-                                    df = pd.DataFrame({old_row_idx : new_row})
-                                    df = df.T
-                                    temp_df = temp_df.append(df)
-                            
-                            else:
-                                leftover_df = leftover_df.append(new_df[:- get_length])
-                                new_df = new_df[-get_length:]
-
+                                get_length = min(len(old_df), len(new_df))
+                                print(len(old_df), len(new_df))
+                                if len(old_df) >= len(new_df):
+                                    old_df = old_df[-get_length:]
+                                    print('A len new',new_df[['num_job', 'num_lot','operation']])
+                                    print('A len old',old_df[['num_job', 'num_lot','operation']])
+                                    
+                                else:
+                                    leftover_df = leftover_df.append(new_df[:- get_length])
+                                    new_df = new_df[-get_length:]
+                                    print('B len new',new_df[['num_job', 'num_lot','operation']])
+                                    print('B len old',old_df[['num_job', 'num_lot','operation']])
+                                    
                                 for new_row_idx, new_row in new_df.iterrows():
                                     new_opt = new_row['operation']
                                     old_row_idx = old_df.index[old_df['operation'] == new_opt].tolist()[0]
