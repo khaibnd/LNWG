@@ -90,11 +90,12 @@ class main():
                                                                                                                       iteration,
                                                                                                                       old_population,
                                                                                                                       old_population_tardiness)
-            # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
+            DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
             print('k-way selection Generated')
 
             # crossover
             self.population_dict = ChrosCrossover.chros_crossover(self)
+            DataOutput.operation_output_writer(self, CROSSOVER_OUTPUT)
             print('Crossover Generated')
 
             #mutation

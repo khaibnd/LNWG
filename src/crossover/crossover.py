@@ -35,7 +35,9 @@ class ChrosCrossover():
         # Create child:
         for m in range(population_size//2):
             parent_1 = self.population_dict[random_sequence[m]]
+            parent_1['num_job'] = parent_1['num_job'].astype(int)
             parent_2 = self.population_dict[random_sequence[m + population_size//2]]
+            parent_2['num_job'] = parent_2['num_job'].astype(int)
             child_1 = ChrosCrossover.fast_copy(self, parent_1)
             child_2 = ChrosCrossover.fast_copy(self, parent_2)
 

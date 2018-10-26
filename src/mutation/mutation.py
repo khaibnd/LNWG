@@ -44,7 +44,7 @@ class ChrosMutation():
         for parent_index, observation in iter(self.population_dict.items()):
 
             # Random Operation Assignment Mutation (ROAM)
-            if ROAM > np.random.uniform(0,1):
+            if 0 > np.random.uniform(0,1):
                 observation_size = len(observation)
                 df_ROAM_pick = observation.sample(int(observation_size*ROAM),
                                                         replace=False)
@@ -63,7 +63,7 @@ class ChrosMutation():
             writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_a.xlsx')
             observation.to_excel(writer, sheet_name='parent_index')
             writer.save()
-
+            print('a',len(observation))
 
             # Operations Sequence Shift Mutation (OSSM)
             if OSSM > np.random.uniform(0, 1):
@@ -103,8 +103,8 @@ class ChrosMutation():
             writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_b.xlsx')
             observation.to_excel(writer, sheet_name='parent_index')
             writer.save()
-
-            # Inteligent Job Machinr Mutation (IJMM)            
+            print('b',len(observation))
+            # Inteligent Job Machine Mutation (IJMM)            
             if IJMM > np.random.uniform(0,1):
                 
                 IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
@@ -164,11 +164,12 @@ class ChrosMutation():
         
                     if (len(df) >= 2):
                         df_idx = df.index.tolist()
-                        df = df.sort_values(['num_job'])
                         df['num_job'] = df['num_job'].astype(int)
+                        df = df.sort_values(['num_job'])
                         df.index = df_idx
 
                     observation.update(df)
+            print('c', len(observation))
             writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_c.xlsx')
             observation.to_excel(writer, sheet_name='parent_index')
             writer.save()
@@ -180,7 +181,7 @@ class ChrosMutation():
                 leftover_df = pd.DataFrame()
                 temp_df = pd.DataFrame()
                 for part in part_list:
-                    group_part_job = observation.loc[observation.part == part].copy()
+                    group_part_job = observation.loc[observation.part == part][:]
                     num_sequence_list = sorted(group_part_job['num_sequence'].unique())
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
@@ -193,8 +194,8 @@ class ChrosMutation():
                                 return PACKING_INDEX_LIST
                             else:
                                 PIVOT = PACKING_INDEX_LIST[0]
-                                GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] >= group_num_sequence.at[PIVOT, 'num_job']]
-                                LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] < group_num_sequence.at[PIVOT, 'num_job']]
+                                GREATER = [element for element in PACKING_INDEX_LIST[1:] if int(group_num_sequence.at[element, 'num_job']) >= int(group_num_sequence.at[PIVOT, 'num_job'])]
+                                LESSER = [element for element in PACKING_INDEX_LIST[1:] if int(group_num_sequence.at[element, 'num_job']) < int(group_num_sequence.at[PIVOT, 'num_job'])]
                                 return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
@@ -206,45 +207,37 @@ class ChrosMutation():
                             old_job = group_num_sequence.at[old_pack_idx, 'num_job']
                             new_job = group_num_sequence.at[new_pack_idx, 'num_job']
                             
-                            if old_job != new_job:
+
+                            print(old_pack_idx, new_pack_idx)
+                            old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
+                            old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
                             
-                                print(old_pack_idx, new_pack_idx)
-                                old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
-                                old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
+                            new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
+                            new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
+
+                            get_length = min(len(old_df), len(new_df))
+                            # print(len(old_df), len(new_df))
+                            if len(old_df) >= len(new_df):
+                                old_df = old_df[-get_length:]
+
+                            else:
+                                leftover_df = leftover_df.append(new_df[:- get_length])
+                                new_df = new_df[-get_length:]
+
+                            new_df.index = old_df.index.tolist() 
+                            temp_df = temp_df.append(new_df)
                                 
-                                new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
-                                new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
-
-                                get_length = min(len(old_df), len(new_df))
-                                print(len(old_df), len(new_df))
-                                if len(old_df) >= len(new_df):
-                                    old_df = old_df[-get_length:]
-                                    print('A len new',new_df[['num_job', 'num_lot','operation']])
-                                    print('A len old',old_df[['num_job', 'num_lot','operation']])
-                                    
-                                else:
-                                    leftover_df = leftover_df.append(new_df[:- get_length])
-                                    new_df = new_df[-get_length:]
-                                    print('B len new',new_df[['num_job', 'num_lot','operation']])
-                                    print('B len old',old_df[['num_job', 'num_lot','operation']])
-                                    
-                                for new_row_idx, new_row in new_df.iterrows():
-                                    new_opt = new_row['operation']
-                                    old_row_idx = old_df.index[old_df['operation'] == new_opt].tolist()[0]
-                                    df = pd.DataFrame({old_row_idx : new_row})
-                                    df = df.T
-                                    temp_df = temp_df.append(df)
-
                 temp_full = temp_df.append(leftover_df)
                 temp_full = temp_full.sort_index()
                 temp_full = temp_full.reset_index(drop=True)
-                temp_full['num_lot'] = temp_full['num_lot'].astype(int)
+                #temp_full['num_job'] = temp_full['num_job'].astype(int)
                 observation.update(temp_full)
             writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_d.xlsx')
-            observation.to_excel(writer, sheet_name='parent_index')
+            temp_full.to_excel(writer, sheet_name='parent_index')
             writer.save()
-            
-            self.population_dict[parent_index] = temp_full
+            print('d_temp',len(temp_full))
+            print('d_observation',len(observation))
+            self.population_dict[parent_index] = observation
 
         return self.population_dict
 

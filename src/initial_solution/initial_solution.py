@@ -95,7 +95,6 @@ class InitialSolution():
             observation = observation.append(sub_df_per_lot)
             # Sort Dataframe by accending index
         observation = observation.sort_index()
-        observation['num_job'] = observation['num_job'].astype(int)
         return observation
 
 
@@ -188,13 +187,13 @@ class InitialSolution():
                                                  'part',
                                                  'operation',
                                                  'machine',
-                                                 'num_sequence'])
+                                                 'num_sequence'], dtype=str)
                 df_full_sequence_job_num =\
                     df_full_sequence_job_num.append(add_row,
                                                     ignore_index=True)
 
                 current_operation_sequence_index += 1
-
+        df_full_sequence_job_num = df_full_sequence_job_num.astype('str')
         return df_full_sequence_job_num
 
 
