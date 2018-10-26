@@ -59,6 +59,11 @@ class ChrosMutation():
                     if observation_same_operation_freq.sum() > 0:
                         assigned_machine = observation_same_operation_freq.idxmin()
                         observation.loc[row_idx, 'machine'] = assigned_machine
+            
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_a.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            print('a',len(observation))
 
             # Operations Sequence Shift Mutation (OSSM)
             if OSSM > np.random.uniform(0, 1):
@@ -95,6 +100,10 @@ class ChrosMutation():
                     observation = child
                 observation = InitialSolution.observation_sequence_sort(self, observation)
 
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_b.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            print('b',len(observation))
             # Inteligent Job Machine Mutation (IJMM)            
             if IJMM > np.random.uniform(0,1):
                 
@@ -160,6 +169,11 @@ class ChrosMutation():
                         df.index = df_idx
 
                     observation.update(df)
+            print('c', len(observation))
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_c.xlsx')
+            observation.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            
             
             # Intelligent Task Sort Mutation (ITSM)
             if ITSM > np.random.uniform(0,1):
@@ -189,7 +203,12 @@ class ChrosMutation():
                         for idx in range(len(packing_index_list)):
                             new_pack_idx = new_packing_index_list[idx]
                             old_pack_idx = packing_index_list[idx]
+                            
+                            old_job = group_num_sequence.at[old_pack_idx, 'num_job']
+                            new_job = group_num_sequence.at[new_pack_idx, 'num_job']
+                            
 
+                            print(old_pack_idx, new_pack_idx)
                             old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
                             old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
                             
@@ -211,8 +230,13 @@ class ChrosMutation():
                 temp_full = temp_df.append(leftover_df)
                 temp_full = temp_full.sort_index()
                 temp_full = temp_full.reset_index(drop=True)
+                #temp_full['num_job'] = temp_full['num_job'].astype(int)
                 observation.update(temp_full)
-
+            writer = pd.ExcelWriter(r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/mutation_d.xlsx')
+            temp_full.to_excel(writer, sheet_name='parent_index')
+            writer.save()
+            print('d_temp',len(temp_full))
+            print('d_observation',len(observation))
             self.population_dict[parent_index] = observation
 
         return self.population_dict

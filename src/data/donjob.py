@@ -218,7 +218,6 @@ def main(link, IOAM):
     excel_writer(observation, file_output,'solution')
     print()
     
-    
 
 if __name__ == '__main__':
     print('Start!!')

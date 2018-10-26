@@ -90,12 +90,12 @@ class main():
                                                                                                                       iteration,
                                                                                                                       old_population,
                                                                                                                       old_population_tardiness)
-            DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
+            # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
             print('k-way selection Generated')
 
             # crossover
             self.population_dict = ChrosCrossover.chros_crossover(self)
-            DataOutput.operation_output_writer(self, CROSSOVER_OUTPUT)
+            # DataOutput.operation_output_writer(self, CROSSOVER_OUTPUT)
             print('Crossover Generated')
 
             #mutation
@@ -130,8 +130,8 @@ class main():
                                                       iteration_run_time]],
                                                       columns=iteration_record_columns)
             iteration_record = iteration_record.append(new_row_iteration_record, ignore_index=True)
-            
-            DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, iteration_record, best_solution)
+            best_solution['num_job'] = best_solution['num_job'].astype(int)
+            # DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, iteration_record, best_solution)
 
         # Adding timeline to best solution
         genetic_finished_time = timer() - program_start
