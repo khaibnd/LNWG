@@ -23,7 +23,7 @@ from src.counter_test.population_diversity import DiversityCheck
 if os.path.isdir('/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'):
     FOLDER = r'/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'
 else:
-    FOLDER = r'C:\\Users\\khai.bui\\Desktop\\Operations\\5. Eclipse\\LNWG\\src\\data\\'
+    FOLDER = r'C:\\Users\\khai.bui\\git\\LNWG\\src\data\\'
 
 
 INPUT_FILE_LINK = FOLDER + 'input.xlsx'
