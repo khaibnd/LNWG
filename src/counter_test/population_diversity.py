@@ -27,4 +27,4 @@ class DiversityCheck():
             unique_value.append(occurence)
         gene_idx_in_pop['unique_value'] = unique_value
                 
-        return gene_idx_in_pop
+        return gene_idx_in_pop, unique_value
