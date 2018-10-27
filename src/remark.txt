@@ -21,7 +21,7 @@ Xét thêm if trong fitness_cleculation???
 7. Ko đổi giá trị makespan trong lúc chạy hàng (Selection có vấn đề và biến dị ko đạt như y/c)
 Vấn đề code python call về giá trị cũ mà ko có sự thay đổi
 
-8.  Xét tardiness thay vì makespan (Done)
+8.  Xét tardiness thay vì makespan (Done ok
 
 9. Lỗi asign máy trong initial solution  không lấy random
 
