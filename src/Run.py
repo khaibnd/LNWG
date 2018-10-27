@@ -4,9 +4,11 @@ import os
 import pstats
 import cProfile
 import pandas as pd
+import statistics as s
 from copy import deepcopy
 from timeit import default_timer as timer
 #sys.path.extend(['/Users/khaibnd/eclipse-workspace/LNWG4'])
+
 
 from src.data.data import DataInput
 from src.data.data import DataOutput
@@ -20,7 +22,7 @@ from src.gantt.plotly_gantt import PlotlyGantt
 from src.counter_test.population_diversity import DiversityCheck
 
 
-if os.path.isdir('/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'):
+if os.path.isdir('/Users/khaibnd/github-repositories/LNWG/src/data/'):
     FOLDER = r'/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'
 else:
     FOLDER = r'C:\\Users\\khai.bui\\git\\LNWG\\src\data\\'
@@ -76,20 +78,15 @@ class main():
 
         gene_idx_in_pop = DiversityCheck.check_population_diversity(self)
         
-        writer = pd.ExcelWriter(DIVERSITY_CHECK)
-        gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
-        writer.save()
-        
 
         initial_finished_time = timer() - program_start
         print('Initial Solution Generated')
         
-        gene_idx_in_pop = DiversityCheck.check_population_diversity(self)
-        
+        gene_idx_in_pop, unique_value = DiversityCheck.check_population_diversity(self)
         writer = pd.ExcelWriter(DIVERSITY_CHECK)
         gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
         writer.save()
-        
+        print('Diverity Rate:', round(s.mean(unique_value)))
         print('Diversity Check Done')
     
         
@@ -123,12 +120,12 @@ class main():
             
             print('Mutation Generated')
             
-            gene_idx_in_pop = DiversityCheck.check_population_diversity(self)
+            gene_idx_in_pop, unique_value = DiversityCheck.check_population_diversity(self)
         
             writer = pd.ExcelWriter(DIVERSITY_CHECK)
             gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
             writer.save()
-            
+            print('Diverity Rate:', round(s.mean(unique_value)))
             print('Diversity Check Done')
 
             # fitness calculation to find the optimal solution
