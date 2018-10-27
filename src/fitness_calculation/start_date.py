@@ -2,6 +2,7 @@
 
 import datetime
 
+
 def start_date():
     '''Get today date'''
     if datetime.datetime.now().weekday() < 6:
@@ -14,7 +15,7 @@ def start_date():
                                     nextday_date.month, nextday_date.day, 13, 0, 0, 0)
     start_date = nextday.timestamp()
     return start_date
-#print(nextday)
-#print(start_date())
-#utc_dt = datetime.datetime.utcfromtimestamp(start_date())
-#print(utc_dt)
+# print(nextday)
+# print(start_date())
+# utc_dt = datetime.datetime.utcfromtimestamp(start_date())
+# print(utc_dt)

@@ -5,11 +5,11 @@ from src.initial_solution.initial_solution import InitialSolution
 
 class FitnessCalculation():
     '''Measure invidial demand job completion time and Total Weighed Tardiness'''
+
     def __init__(self, observation, sequence, machine_lotsize):
         self.observation = observation
         self.sequence = sequence
         self.machine_lotsize = machine_lotsize
-
 
     def prev_part_sequence_operation(self, part, operation, num_sequence):
         part_sequence = InitialSolution.part_sequence(self, part, num_sequence)
@@ -23,7 +23,6 @@ class FitnessCalculation():
             prev_part_sequence_operation = None
         return prev_part_sequence_operation
 
-
     def post_part_sequence_operation(self, part, operation, num_sequence):
         part_sequence = InitialSolution.part_sequence(self, part, num_sequence)
         operation_index = part_sequence.index(operation)
@@ -32,21 +31,21 @@ class FitnessCalculation():
         except:
             post_part_sequence_operation = None
         return post_part_sequence_operation
-    
 
     def calculate_job_processing_time(self, part, operation, num_sequence):
         '''Completion time each num_lot(= batch processing time)'''
+
         def line_index(num_sequence, part):
             line_index = self.processing_time.index[(self.processing_time['num_sequence'] == num_sequence)
                                               & (self.processing_time['part'] == part)].tolist()
             # Get the smallest index
             line_index = line_index[0]
             return line_index
+
         # print('line', part, operation, num_sequence)
         job_processing_time = self.processing_time.at[line_index(num_sequence, part), operation]
         # print('job_processing_time', part, operation, num_sequence, job_processing_time)
         return job_processing_time
-
 
     def completion_time_with_daily_work_hour(self,
                                              row_index,
@@ -55,7 +54,7 @@ class FitnessCalculation():
                                              completion_time,
                                              prev_machine_completion_time):
         machine_daily_work_hour = self.machine_criteria.loc[self.machine_criteria.machine == machine, 'work_hour'].values[0]
-        num_day = math.floor((completion_time[row_index] - prev_machine_completion_time[machine])/machine_daily_work_hour)
+        num_day = math.floor((completion_time[row_index] - prev_machine_completion_time[machine]) / machine_daily_work_hour)
         free_hour = completion_time[row_index] - prev_machine_completion_time[machine] - job_processing_time
         if num_day > 0 and free_hour == 0:
             prev_machine_completion_time[machine] = completion_time[row_index] + num_day * (24 - machine_daily_work_hour)
@@ -64,7 +63,6 @@ class FitnessCalculation():
         else:
             prev_machine_completion_time[machine] = completion_time[row_index]
         return prev_machine_completion_time[machine]
-
  
     def calculate_finished_time(self, observation):
         '''Chua xem xet may tsk(Gop 4 lot)'''
@@ -99,8 +97,7 @@ class FitnessCalculation():
                                                                                        num_sequence)
             except:
                 print('Wrong processing time!')
-                print('part: %s, operation: %s, num_sequence: %s' %(part, operation, num_sequence))
-
+                print('part: %s, operation: %s, num_sequence: %s' % (part, operation, num_sequence))
 
             def ga_calculation(self):
                 # Step 5.1: First assignment to machine m and operation
@@ -161,7 +158,6 @@ class FitnessCalculation():
                                                                                                                     machine,
                                                                                                                     completion_time,
                                                                                                                     prev_machine_completion_time)
-    
                         
                 return completion_time[row_index], prev_demand_job_completion_time[num_job], prev_operation_completion_time[num_lot]
 
@@ -172,9 +168,8 @@ class FitnessCalculation():
                     line_index = line_index[0]
                 except(IndexError):
                     print('IndexError: list index out of range')
-                    print('Combination %s and %s is not in the input file' %(machine, num_sequence))
+                    print('Combination %s and %s is not in the input file' % (machine, num_sequence))
                 return line_index
-
 
             max_lotsize = int(self.machine_lotsize.at[line_index(machine, num_sequence), 'max_lotsize'])
             min_lotsize = int(self.machine_lotsize.at[line_index(machine, num_sequence), 'min_lotsize'])
@@ -219,18 +214,17 @@ class FitnessCalculation():
 
             # Step 6.1: Maximum and minimum lot per run = 1
             if (max_lotsize == 1) and (min_lotsize == 1):
-                completion_time[row_index],\
-                prev_demand_job_completion_time[num_job],\
+                completion_time[row_index], \
+                prev_demand_job_completion_time[num_job], \
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
-
 
             # Step 6.2: maximum lotsize > 1 and minimum lotsize = 1
             elif (min_lotsize == 1) and (num_assign_max_lotsize[row_index] == 0):
                 lot_size = 1
-                completion_time[row_index],\
-                prev_demand_job_completion_time[num_job],\
+                completion_time[row_index], \
+                prev_demand_job_completion_time[num_job], \
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
-                succeed_observation = observation.loc[row_index+1:,:]
+                succeed_observation = observation.loc[row_index + 1:, :]
 
                 # Review groupability of precedence genes
                 for group_row_index, group_row in succeed_observation.iterrows():
@@ -250,11 +244,11 @@ class FitnessCalculation():
                                 completion_time[group_row_index] = completion_time[row_index]
                                 prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                 prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                lot_size +=1
-                                num_assign_max_lotsize[group_row_index] +=1
+                                lot_size += 1
+                                num_assign_max_lotsize[group_row_index] += 1
                             # Step 6.2.1.2.1: The group index is not first operation of sequence    
                             else:
-                                prev_group_observation = observation.loc[:row_index-1,:]
+                                prev_group_observation = observation.loc[:row_index - 1, :]
                                 try:
                                     group_row_num_lot = group_row['num_lot']
                                     prev_row_index = prev_group_observation.index[(prev_group_observation['num_lot'] == group_row_num_lot)
@@ -272,8 +266,8 @@ class FitnessCalculation():
                                         completion_time[group_row_index] = completion_time[row_index]
                                         prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                         prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                        lot_size +=1
-                                        num_assign_max_lotsize[group_row_index] +=1
+                                        lot_size += 1
+                                        num_assign_max_lotsize[group_row_index] += 1
 
                                     # Step 6.2.1.2.1.1.1: Job of Previous operation finished AFTER group job start
                                     else:
@@ -294,8 +288,8 @@ class FitnessCalculation():
                                                 completion_time[group_row_index] = completion_time[row_index]
                                                 prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                                 prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                                lot_size +=1
-                                                num_assign_max_lotsize[group_row_index] +=1
+                                                lot_size += 1
+                                                num_assign_max_lotsize[group_row_index] += 1
 
                         # Step 6.2.1.3: Operation canot group together
                         else:
@@ -309,10 +303,10 @@ class FitnessCalculation():
             elif (max_lotsize == 1) and (min_lotsize > 1) and (num_assign_min_lotsize[row_index] == 0):
                 print('min lot size > 1')
                 lot_size = 1
-                completion_time[row_index],\
-                prev_demand_job_completion_time[num_job],\
+                completion_time[row_index], \
+                prev_demand_job_completion_time[num_job], \
                 prev_operation_completion_time[num_lot] = ga_calculation(self)
-                succeed_observation = observation.loc[row_index+1:,:]
+                succeed_observation = observation.loc[row_index + 1:, :]
 
                 # Review groupability of precedence genes
                 for group_row_index, group_row in succeed_observation.iterrows():
@@ -332,11 +326,11 @@ class FitnessCalculation():
                                 completion_time[group_row_index] = completion_time[row_index]
                                 prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                 prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                lot_size +=1
-                                num_assign_min_lotsize[group_row_index] +=1
+                                lot_size += 1
+                                num_assign_min_lotsize[group_row_index] += 1
                             # Step 6.2.1.2.1: The group index is not first operation of sequence    
                             else:
-                                post_group_observation = observation.loc[:row_index-1,:]
+                                post_group_observation = observation.loc[:row_index - 1, :]
                                 try:
                                     group_row_num_lot = group_row['num_lot']
                                     prev_row_index = prev_group_observation.index[(prev_group_observation['num_lot'] == group_row_num_lot)
@@ -354,8 +348,8 @@ class FitnessCalculation():
                                         completion_time[group_row_index] = completion_time[row_index]
                                         prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                         prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                        lot_size +=1
-                                        num_assign_max_lotsize[group_row_index] +=1
+                                        lot_size += 1
+                                        num_assign_max_lotsize[group_row_index] += 1
 
                                     # Step 6.2.1.2.1.1.1: Job of Previous operation finished AFTER group job start
                                     else:
@@ -376,8 +370,8 @@ class FitnessCalculation():
                                                 completion_time[group_row_index] = completion_time[row_index]
                                                 prev_demand_job_completion_time[group_num_job] = completion_time[group_row_index]
                                                 prev_operation_completion_time[group_row_num_lot] = completion_time[group_row_index]
-                                                lot_size +=1
-                                                num_assign_max_lotsize[group_row_index] +=1
+                                                lot_size += 1
+                                                num_assign_max_lotsize[group_row_index] += 1
             
             # Step 6.4: maximum lotsize > 1 and minimum lotsize > 1    
             elif (assign_available == True):
@@ -386,7 +380,6 @@ class FitnessCalculation():
             # Step 6.5: Cannot grouop together
             else:
                 pass
-
 
         return prev_demand_job_completion_time, prev_operation_completion_time, completion_time
 
@@ -401,7 +394,7 @@ class FitnessCalculation():
         weighted_tardiness = 0
         demand_weight = self.demand['weight'].tolist()
         lead_time = self.demand['lead_time'].tolist()
-        prev_demand_job_completion_time,_, __ = FitnessCalculation.calculate_finished_time(self, observation)
+        prev_demand_job_completion_time, _, __ = FitnessCalculation.calculate_finished_time(self, observation)
         for key, value in prev_demand_job_completion_time.items():
             key = int(key)
             if ((lead_time[key] * 24 - value) * demand_weight[key]) < 0:

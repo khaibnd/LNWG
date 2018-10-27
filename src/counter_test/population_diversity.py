@@ -1,6 +1,7 @@
 '''Kiem tra tinh da dang cua gene'''
 import pandas as pd
 
+
 class DiversityCheck():
     
     def __init__(self, population_dict):

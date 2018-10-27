@@ -7,21 +7,21 @@ import plotly.figure_factory as ff
 from src.fitness_calculation.start_date import start_date
 from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
-
 plotly.tools.set_credentials_file(username='khaibnd', api_key='pDObqrmhM1Mq6KqUKte1')
 start_date = start_date()
+
 
 class PlotlyGantt():
     '''Build production gantt-chart for machines in 
     https://plot.ly/~khaibnd/14/ln-wedge-lot-scheduling/#/'''
+
     def __init__(self, parameter):
         self.parameter = parameter
-
 
     def plotly_gantt(self, best_solution):
         '''Generating and uploading gantt chart data'''
         j_keys = best_solution['num_lot'].unique()
-        #m_keys = best_solution['machine'].unique()
+        # m_keys = best_solution['machine'].unique()
         gantt_dataframe = []
 
         print(best_solution)
@@ -41,12 +41,12 @@ class PlotlyGantt():
             start = finish - job_run_time * 60 * 60
             gantt_start = pd.to_datetime(start, unit='s')
 
-            gantt_dataframe.append(dict(Task='Machine %s'%(machine),
-                                        Start='%s'%(str(gantt_start)),
-                                        Finish='%s'%(str(gantt_finish)),
-                                        Resource='Job_%s'%(num_job)))
+            gantt_dataframe.append(dict(Task='Machine %s' % (machine),
+                                        Start='%s' % (str(gantt_start)),
+                                        Finish='%s' % (str(gantt_finish)),
+                                        Resource='Job_%s' % (num_job)))
 
-        color = {'Job_%s'%(k):'rgb'+str(tuple(np.random.choice(range(256), size=3)))
+        color = {'Job_%s' % (k):'rgb' + str(tuple(np.random.choice(range(256), size=3)))
                  for k in range(len(j_keys))}
         fig = ff.create_gantt(gantt_dataframe,
                               index_col='Resource',

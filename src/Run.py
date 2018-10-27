@@ -7,8 +7,7 @@ import pandas as pd
 import statistics as s
 from copy import deepcopy
 from timeit import default_timer as timer
-#sys.path.extend(['/Users/khaibnd/eclipse-workspace/LNWG4'])
-
+# sys.path.extend(['/Users/khaibnd/eclipse-workspace/LNWG4'])
 
 from src.data.data import DataInput
 from src.data.data import DataOutput
@@ -21,12 +20,10 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 from src.gantt.plotly_gantt import PlotlyGantt
 from src.counter_test.population_diversity import DiversityCheck
 
-
 if os.path.isdir('/Users/khaibnd/github-repositories/LNWG/src/data/'):
     FOLDER = r'/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'
 else:
     FOLDER = r'C:\\Users\\khai.bui\\git\\LNWG\\src\data\\'
-
 
 INPUT_FILE_LINK = FOLDER + 'input.xlsx'
 OUTPUT_FILE_LINK = FOLDER + 'output.xlsx'
@@ -40,18 +37,22 @@ DIVERSITY_CHECK = FOLDER + 'Diversity.xlsx'
 
 # pylint: disable=E0401
 program_start = timer()
+
+
 class main():
+
     def __init__(self):
-        self.parameter,\
-        self.demand,\
-        self.criteria,\
-        self.sequence,\
-        self.machine,\
-        self.machine_criteria,\
-        self.machine_lotsize,\
-        self.processing_time,\
-        self.wip,\
+        self.parameter, \
+        self.demand, \
+        self.criteria, \
+        self.sequence, \
+        self.machine, \
+        self.machine_criteria, \
+        self.machine_lotsize, \
+        self.processing_time, \
+        self.wip, \
         self.finished_goods = DataInput().data_reader(INPUT_FILE_LINK)
+
     def delete_old_files(self):
         ExcelFile.file_remove(self, OUTPUT_FILE_LINK)
         ExcelFile.file_remove(self, INITIAL_OUTPUT)
@@ -77,7 +78,6 @@ class main():
         DataOutput.operation_output_writer(self, INITIAL_OUTPUT)
 
         gene_idx_in_pop = DiversityCheck.check_population_diversity(self)
-        
 
         initial_finished_time = timer() - program_start
         print('Initial Solution Generated')
@@ -88,7 +88,6 @@ class main():
         writer.save()
         print('Diverity Rate:', round(s.mean(unique_value)))
         print('Diversity Check Done')
-    
         
         iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time']
         iteration_record = pd.DataFrame(columns=iteration_record_columns)
@@ -97,7 +96,7 @@ class main():
         old_population_tardiness = {}
         for iteration in range(num_iteration):
             iteration_start = timer()
-            print('Iteration#:',iteration)
+            print('Iteration#:', iteration)
 
             # k-way selection
             
@@ -113,10 +112,9 @@ class main():
             # DataOutput.operation_output_writer(self, CROSSOVER_OUTPUT)
             print('Crossover Generated')
 
-            #mutation
+            # mutation
             self.population_dict = ChrosMutation.chros_mutation(self)
             # DataOutput.operation_output_writer(self, MUTATION_OUTPUT)
-            
             
             print('Mutation Generated')
             
@@ -135,7 +133,7 @@ class main():
                 
                 local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
                 self.population_tardiness_dict[num_observation] = local_tardiness
-                print('o_%s: %s' %(num_observation,local_tardiness))
+                print('o_%s: %s' % (num_observation, local_tardiness))
                 local_tardiness_list.append(local_tardiness)
                 if local_tardiness > global_best_tardiness:
                     global_best_tardiness = local_tardiness.copy()
@@ -169,6 +167,7 @@ class main():
         # PlotlyGantt.plotly_gantt(self, best_solution)
 
         return global_best_tardiness, best_solution
+
 
 if __name__ == '__main__':
     print("Start!!!")

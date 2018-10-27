@@ -12,24 +12,24 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 class ChrosMutation():
     '''1. each child chromosome with small probabilities 
        2. Each single chromosome at the gene level to alter information contained in the gene.'''
+
     def __itit__(self, population_dict, parameter, sequence, machine):
         self.population_dict = population_dict
         self.parameter = parameter
         self.sequence = sequence
         self.machine = machine
-    
 
     def machine_list(self):
         operation_list = self.machine.columns.tolist()[1:]
-        machine_per_operation =  {operation: sta(self.machine[self.machine['criteria']\
+        machine_per_operation = {operation: sta(self.machine[self.machine['criteria']\
                                             == 'num_machine'][operation].values[0])
                                                              for operation in operation_list}
         return sorted(set([i[0] for i in machine_per_operation.values()]))
+
     def machine_assign_time(self):
         '''Randomly selection machine for operation from list of num_machine'''
         machine_list = ChrosMutation.machine_list(self)
         return {operation: 0 for operation in machine_list}
-
 
     def chros_mutation(self):
         '''Make mutation'''
@@ -40,13 +40,12 @@ class ChrosMutation():
         IJMM_rate = int(self.parameter[self.parameter.name == 'IJMM_rate']['value'].values[0])
         ITSM = self.parameter[self.parameter.name == 'ITSM']['value'].values[0]
 
-
         for parent_index, observation in iter(self.population_dict.items()):
 
             # Random Operation Assignment Mutation (ROAM)
-            if ROAM > np.random.uniform(0,1):
+            if ROAM > np.random.uniform(0, 1):
                 observation_size = len(observation)
-                df_ROAM_pick = observation.sample(int(observation_size*ROAM),
+                df_ROAM_pick = observation.sample(int(observation_size * ROAM),
                                                         replace=False)
                 df_ROAM_pick = df_ROAM_pick.sort_index()
                 for row_idx, row in df_ROAM_pick.iterrows():
@@ -63,12 +62,12 @@ class ChrosMutation():
             # Operations Sequence Shift Mutation (OSSM)
             if OSSM > np.random.uniform(0, 1):
                 observation_size = len(observation)
-                observation_idx_list = list(range(0,observation_size))
+                observation_idx_list = list(range(0, observation_size))
                 df_OSSM_pick = random.sample(observation_idx_list, OSSM_rate)
                 df_OSSM_pick = sorted(df_OSSM_pick)
 
                 for row_idx in df_OSSM_pick:
-                    row = observation[observation.index==row_idx]
+                    row = observation[observation.index == row_idx]
                     new_row_idx = random.choice(range(observation.shape[0]))
 
                     child = pd.DataFrame(columns=['num_job',
@@ -79,16 +78,16 @@ class ChrosMutation():
         
                     # Swap position of OSSM pick to new random position in parent
                     if new_row_idx > row_idx:
-                        child = child.append(observation.loc[0:row_idx-1,:], ignore_index=True)
-                        child = child.append(observation.loc[row_idx +1:new_row_idx,:], ignore_index=True)
+                        child = child.append(observation.loc[0:row_idx - 1, :], ignore_index=True)
+                        child = child.append(observation.loc[row_idx + 1:new_row_idx, :], ignore_index=True)
                         child = child.append(row, ignore_index=True)
-                        child = child.append(observation.loc[new_row_idx+1:,:], ignore_index=True)
+                        child = child.append(observation.loc[new_row_idx + 1:, :], ignore_index=True)
             
                     elif new_row_idx < row_idx:
-                        child = child.append(observation.loc[0:new_row_idx-1,:], ignore_index=True)
+                        child = child.append(observation.loc[0:new_row_idx - 1, :], ignore_index=True)
                         child = child.append(row, ignore_index=True)
-                        child = child.append(observation.loc[new_row_idx:row_idx-1,:], ignore_index=True)
-                        child = child.append(observation.loc[row_idx+1:,:], ignore_index=True)
+                        child = child.append(observation.loc[new_row_idx:row_idx - 1, :], ignore_index=True)
+                        child = child.append(observation.loc[row_idx + 1:, :], ignore_index=True)
                     else:
                         child = observation
                     
@@ -96,9 +95,9 @@ class ChrosMutation():
                 observation = InitialSolution.observation_sequence_sort(self, observation)
 
             # Inteligent Job Machine Mutation (IJMM)            
-            if  IJMM > np.random.uniform(0,1):
+            if  IJMM > np.random.uniform(0, 1):
                 
-                IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
+                IJMM_pick_df = observation.sample(IJMM_rate, replace=False)
                 IJMM_pick_df = IJMM_pick_df.sort_index()
                 for row_idx, row in IJMM_pick_df.iterrows():
                     row_part = row['part']
@@ -162,7 +161,7 @@ class ChrosMutation():
                     observation.update(df)
             
             # Intelligent Task Sort Mutation (ITSM)
-            if ITSM > np.random.uniform(0,1):
+            if ITSM > np.random.uniform(0, 1):
                 part_list = sorted(observation['part'].unique())
                 leftover_df = pd.DataFrame()
                 temp_df = pd.DataFrame()
@@ -182,7 +181,7 @@ class ChrosMutation():
                                 PIVOT = PACKING_INDEX_LIST[0]
                                 GREATER = [element for element in PACKING_INDEX_LIST[1:] if int(group_num_sequence.at[element, 'num_job']) >= int(group_num_sequence.at[PIVOT, 'num_job'])]
                                 LESSER = [element for element in PACKING_INDEX_LIST[1:] if int(group_num_sequence.at[element, 'num_job']) < int(group_num_sequence.at[PIVOT, 'num_job'])]
-                                return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
+                                return quick_sort(LESSER, group_num_sequence) + [PIVOT] + quick_sort(GREATER, group_num_sequence)
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
                         
@@ -202,7 +201,7 @@ class ChrosMutation():
                                 old_df = old_df[-get_length:]
 
                             else:
-                                leftover_df = leftover_df.append(new_df[:- get_length])
+                                leftover_df = leftover_df.append(new_df[:-get_length])
                                 new_df = new_df[-get_length:]
 
                             new_df.index = old_df.index.tolist() 

@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-
 input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
@@ -24,6 +23,7 @@ def excel_writer(observation, file, sheet_name):
     observation.to_excel(writer, sheet_name)
     writer.save()
 
+
 def part_sequence(sequence, part, num_sequence):
     part_sequence = sequence[(sequence.part == part) & (sequence.num_sequence == num_sequence)]
     part_sequence = part_sequence.dropna(axis=1, how='any')
@@ -34,7 +34,7 @@ def part_sequence(sequence, part, num_sequence):
 def main(link, input_link, IJMM, IJMM_rate):
     observation = read_file(link)
     # Intelligent Job Selection Mutation
-    if IJMM > np.random.uniform(0,1):
+    if IJMM > np.random.uniform(0, 1):
         sequence = sequence_import(input_link)
         
         def get_prev_row_operation(part_sequence, operation):
@@ -53,7 +53,7 @@ def main(link, input_link, IJMM, IJMM_rate):
                     post_row_operation = None
                 return post_row_operation
         
-        IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
+        IJMM_pick_df = observation.sample(IJMM_rate, replace=False)
         IJMM_pick_df = IJMM_pick_df.sort_index()
         print(IJMM_pick_df)
         for row_idx, row in IJMM_pick_df.iterrows():
@@ -63,7 +63,6 @@ def main(link, input_link, IJMM, IJMM_rate):
             row_machine = row['machine']
             row_num_sequence = row['num_sequence']
             row_part_sequence = part_sequence(sequence, row_part, row_num_sequence)
-
             
             prev_row_operation = get_prev_row_operation(row_part_sequence, row_operation)
             post_row_operation = get_post_row_operation(row_part_sequence, row_operation)
@@ -121,11 +120,12 @@ def main(link, input_link, IJMM, IJMM_rate):
                 df = df.sort_values(['num_job'])
                 df['num_job'] = df['num_job'].astype(int)
                 df.index = df_idx
-                print('new',df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
+                print('new', df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
             observation.update(df)
     excel_writer(observation, file_output, sheet_name='IJMM')
     
     return observation
+
 
 if __name__ == '__main__':
     print('Start!!')

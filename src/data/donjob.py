@@ -11,6 +11,7 @@ IJMM_rate = 10
 
 print(pd.__version__)
 
+
 def read_file(link):
     observation = pd.read_excel(link, sheet_name='best_solution')
     return observation
@@ -19,6 +20,7 @@ def read_file(link):
 def sequence_import(input_link):
     sequence = pd.read_excel(input_link, sheet_name='sequence')
     return sequence
+
 
 def excel_writer(obervation, file, sheet_name):
     writer = pd.ExcelWriter(file)
@@ -32,10 +34,11 @@ def part_sequence(sequence, part, num_sequence):
     part_sequence = part_sequence.values.flatten().tolist()[2:]
     return part_sequence
 
+
 def main(link, IOAM):
     observation = read_file(link)
     
-    if IJMM > np.random.uniform(0,1):
+    if IJMM > np.random.uniform(0, 1):
         sequence = sequence_import(input_link)
         
         def get_prev_row_operation(part_sequence, operation):
@@ -54,9 +57,9 @@ def main(link, IOAM):
                     post_row_operation = None
                 return post_row_operation
         
-        IJMM_pick_df = observation.sample(IJMM_rate,replace=False)
+        IJMM_pick_df = observation.sample(IJMM_rate, replace=False)
         IJMM_pick_df = IJMM_pick_df.sort_index()
-        #print('IJMM_pick_df', IJMM_pick_df[['num_job', 'num_lot','operation']])
+        # print('IJMM_pick_df', IJMM_pick_df[['num_job', 'num_lot','operation']])
         
         for row_idx, row in IJMM_pick_df.iterrows():
             row_part = row['part']
@@ -84,9 +87,9 @@ def main(link, IOAM):
                                               & (observation.num_sequence == row_num_sequence)
                                               & (observation.index > row_min_idx)
                                               & (observation.index < row_max_idx)]
-            print('check_machine_df', check_machine_df[['num_job', 'num_lot','operation']])
+            print('check_machine_df', check_machine_df[['num_job', 'num_lot', 'operation']])
             review_df = observation.loc[row_min_idx:row_max_idx, :]
-            print('review_df', review_df[['num_job', 'num_lot','operation']])
+            print('review_df', review_df[['num_job', 'num_lot', 'operation']])
             # print(row_min_idx)
             # print(row_max_idx)
             
@@ -98,7 +101,7 @@ def main(link, IOAM):
                                                  'machine',
                                                  'num_sequence'], dtype=str)
             for check_row_idx, check_row in check_machine_df.iterrows():
-                #print('check_row', check_row[['num_job', 'num_lot','operation']])
+                # print('check_row', check_row[['num_job', 'num_lot','operation']])
                 check_row_part = check_row['part']
                 check_row_num_sequence = check_row['num_sequence']
                 check_row_num_lot = check_row['num_lot']
@@ -134,12 +137,11 @@ def main(link, IOAM):
                 df['num_job'] = df['num_job'].astype(int)
                 df = df.sort_values(['num_job'])
                 df.index = df_idx
-                print('new_df',df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
+                print('new_df', df[['num_job', 'part', 'machine', 'num_lot', 'operation']])
             observation.update(df)
-    excel_writer(observation, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/IJMM.xlsx','IJMM')
+    excel_writer(observation, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/IJMM.xlsx', 'IJMM')
 
-
-    if IOAM > np.random.uniform(0,1):
+    if IOAM > np.random.uniform(0, 1):
         part_list = sorted(observation['part'].unique())
         # observation_list = observation.index.tolist()
         leftover_df = pd.DataFrame()
@@ -161,7 +163,7 @@ def main(link, IOAM):
                         PIVOT = PACKING_INDEX_LIST[0]
                         GREATER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] >= group_num_sequence.at[PIVOT, 'num_job']]
                         LESSER = [element for element in PACKING_INDEX_LIST[1:] if group_num_sequence.at[element, 'num_job'] < group_num_sequence.at[PIVOT, 'num_job']]
-                        return quick_sort(LESSER, group_num_sequence) + [PIVOT] +quick_sort(GREATER, group_num_sequence)
+                        return quick_sort(LESSER, group_num_sequence) + [PIVOT] + quick_sort(GREATER, group_num_sequence)
                     
                 new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
                 print('old', packing_index_list)
@@ -181,41 +183,39 @@ def main(link, IOAM):
                     print(len(old_df), len(new_df))
                     if len(old_df) >= len(new_df):
                         old_df = old_df[-get_length:]
-                        print('A len new',new_df[['num_job', 'num_lot','operation']])
-                        print('A len old',old_df[['num_job', 'num_lot','operation']])
+                        print('A len new', new_df[['num_job', 'num_lot', 'operation']])
+                        print('A len old', old_df[['num_job', 'num_lot', 'operation']])
 
                     else:
-                        leftover_df = leftover_df.append(new_df[:- get_length])
+                        leftover_df = leftover_df.append(new_df[:-get_length])
                         new_df = new_df[-get_length:]
-                        print('B len new',new_df[['num_job', 'num_lot','operation']])
-                        print('B len old',old_df[['num_job', 'num_lot','operation']])
-                        
+                        print('B len new', new_df[['num_job', 'num_lot', 'operation']])
+                        print('B len old', old_df[['num_job', 'num_lot', 'operation']])
 
                     new_df.index = old_df.index.tolist() 
 
                     temp_df = temp_df.append(new_df)
-        print('B temp', temp_df[['num_job', 'num_lot','operation']])
+        print('B temp', temp_df[['num_job', 'num_lot', 'operation']])
 
+            # print('temp', temp_df[['num_job', 'num_lot','operation']])
+            # excel_writer(temp_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/%s.xlsx' %part, part)
 
-            #print('temp', temp_df[['num_job', 'num_lot','operation']])
-            #excel_writer(temp_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/%s.xlsx' %part, part)
-
-        #temp_full = temp_full.append(leftover_df)
-        excel_writer(leftover_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/leftover.xlsx','leftover')
+        # temp_full = temp_full.append(leftover_df)
+        excel_writer(leftover_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/leftover.xlsx', 'leftover')
         
-        excel_writer(temp_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/temp_df.xlsx','temp_df')
+        excel_writer(temp_df, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/temp_df.xlsx', 'temp_df')
         temp_full = temp_df.append(leftover_df)
         temp_full = temp_full.sort_index()
         temp_full = temp_full.reset_index(drop=True)
         print(len(temp_full))
-        excel_writer(temp_full, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/temp_full.xlsx','temp_full')
+        excel_writer(temp_full, r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/temp_full.xlsx', 'temp_full')
 
     lot_list = temp_full['num_lot'].unique()
     for lot in lot_list:
-        num = len(temp_full[temp_full['num_lot']==lot])
-        print('Lot# %s has %s lot' %(lot, num))
+        num = len(temp_full[temp_full['num_lot'] == lot])
+        print('Lot# %s has %s lot' % (lot, num))
                     
-    excel_writer(observation, file_output,'solution')
+    excel_writer(observation, file_output, 'solution')
     print()
     
 

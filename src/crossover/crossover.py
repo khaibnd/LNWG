@@ -8,12 +8,12 @@ class ChrosCrossover():
        2. For each pair,  the algorithms selects one of the available crossover operators
           and applies it with a certain probability to create two child individuals by exchanging
           information contained in the parents'''
+
     def __init__(self, population_dict, parameter, sequence, machine):
         self.population_dict = population_dict
         self.parameter = parameter
         self.sequence = sequence
         self.machine = machine
-
 
     def fast_copy(self, copy_value):
         '''Method fast copy to increase copy speed, instead of deepcopy'''
@@ -21,7 +21,6 @@ class ChrosCrossover():
         for key, value in output.items():
             output[key] = ChrosCrossover.fast_copy(value) if isinstance(value, dict) else value
         return output
-
 
     def chros_crossover(self):
         '''Main function'''
@@ -33,10 +32,10 @@ class ChrosCrossover():
         # Generate random sequence to select the parent chromosome
         random_sequence = list(np.random.permutation(population_size))
         # Create child:
-        for m in range(population_size//2):
+        for m in range(population_size // 2):
             parent_1 = self.population_dict[random_sequence[m]]
             parent_1['num_job'] = parent_1['num_job'].astype(int)
-            parent_2 = self.population_dict[random_sequence[m + population_size//2]]
+            parent_2 = self.population_dict[random_sequence[m + population_size // 2]]
             parent_2['num_job'] = parent_2['num_job'].astype(int)
             child_1 = ChrosCrossover.fast_copy(self, parent_1)
             child_2 = ChrosCrossover.fast_copy(self, parent_2)

@@ -3,14 +3,10 @@ import numpy as np
 import random
 from copy import deepcopy
 
-
-
 input_link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/input.xlsx'
 link = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/output2.xlsx'
 file_output = r'/Users/khaibnd/eclipse-workspace/LNWG4/src/data/new_output.xlsx'
 OSSM = 0.01
-
-
 
 
 def read_file(link):
@@ -69,11 +65,11 @@ def main(link, input_link, OSSM):
     if 1 > np.random.uniform(0, 1):
         observation_size = len(observation)
         print(observation_size)
-        df_OSSM_pick = random.sample(list(range(0,observation_size)), int(observation_size*OSSM))
+        df_OSSM_pick = random.sample(list(range(0, observation_size)), int(observation_size * OSSM))
         df_OSSM_pick = sorted(df_OSSM_pick)
         print(df_OSSM_pick)
         for row_idx in df_OSSM_pick:
-            row = observation[observation.index==row_idx]
+            row = observation[observation.index == row_idx]
             print(row)
             print(type(row))
             new_row_idx = random.choice(range(observation.shape[0]))
@@ -89,17 +85,17 @@ def main(link, input_link, OSSM):
 
             # Swap position of OSSM pick to new random position in parent
             if new_row_idx > row_idx:
-                child = child.append(observation.loc[0:row_idx-1,:], ignore_index=True)
-                child = child.append(observation.loc[row_idx +1:new_row_idx,:], ignore_index=True)
+                child = child.append(observation.loc[0:row_idx - 1, :], ignore_index=True)
+                child = child.append(observation.loc[row_idx + 1:new_row_idx, :], ignore_index=True)
                 child = child.append(row, ignore_index=True)
-                child = child.append(observation.loc[new_row_idx+1:,:], ignore_index=True)
-                print(child.loc[row_idx,:])
+                child = child.append(observation.loc[new_row_idx + 1:, :], ignore_index=True)
+                print(child.loc[row_idx, :])
     
             elif new_row_idx < row_idx:
-                child = child.append(observation.loc[0:new_row_idx-1,:], ignore_index=True)
+                child = child.append(observation.loc[0:new_row_idx - 1, :], ignore_index=True)
                 child = child.append(row, ignore_index=True)
-                child = child.append(observation.loc[new_row_idx:row_idx-1,:], ignore_index=True)
-                child = child.append(observation.loc[row_idx+1:,:], ignore_index=True)
+                child = child.append(observation.loc[new_row_idx:row_idx - 1, :], ignore_index=True)
+                child = child.append(observation.loc[row_idx + 1:, :], ignore_index=True)
 
             sequence = sequence_import(input_link)
             

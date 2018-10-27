@@ -10,15 +10,14 @@ class ChrosKWaySelection():
        3. A copy of this individual is added to the mating pool to form the next generation.
        4. the k individuals in the tournament are placed back in the current population and the process is repeated.
        5. This continues until the number of individuals added to the mating pool is equal to the population size.'''
+
     def __init__(self, population_dict, population_tardiness_dict, iteration):
         self.population_dict = population_dict
         self.population_tardiness_dict = population_tardiness_dict
         self.iteration = iteration     
 
-
     def generate_df_selection(self, iteration, old_population, old_population_tardiness):
         '''Selection the chromosones from population for k-way selection'''
-
         
         new_population = {}
         population_size = int(self.parameter[self.parameter.name == 'population_size']['value'])
@@ -32,9 +31,8 @@ class ChrosKWaySelection():
                                                                      self.population_dict.get(num_observation))
                                         for num_observation in population_key_list}
 
-        #parent = {**self.population_dict, **old_population}
-        #parent_tardiness = {**self.population_tardiness_dict, **old_population_tardiness}
-
+        # parent = {**self.population_dict, **old_population}
+        # parent_tardiness = {**self.population_tardiness_dict, **old_population_tardiness}
 
         # for python <=3.4, PEP448
         def merge_2_dicts(x, y):

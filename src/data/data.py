@@ -7,6 +7,7 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 class DataInput():
     '''Get DataFrame Input from Excel file'''
+
     def data_reader(self, input):
         '''Read excel file to dataFrame'''
         df_input = pd.ExcelFile(input)
@@ -29,9 +30,9 @@ class DataInput():
 
 
 class DataOutput():
+
     def __init__(self, machine_criteria):
         self.machine_criteria = machine_criteria
-        
 
     def data_writer(self,
                     output,
@@ -52,6 +53,7 @@ class DataOutput():
         _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
 
         start_time = {}
+
         def num_sunday(self, end, start, weekday=6):
             start = datetime.datetime.utcfromtimestamp(start)
             start_year = start.year
@@ -65,13 +67,13 @@ class DataOutput():
             
             sunday, remainder = divmod((end - start).days, 7)
             if (weekday - start.weekday()) % 7 <= remainder:
-                return sunday +1
+                return sunday + 1
             else:
                 return sunday
     
         for key in completion_time:
             
-            completion_time[key] = completion_time[key] * 3600 + start + 24 *60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start,6)
+            completion_time[key] = completion_time[key] * 3600 + start + 24 * 60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start, 6)
 
             part = best_solution.loc[best_solution.index == key]['part'].values[0]
             operation = best_solution.loc[best_solution.index == key]['operation'].values[0]
@@ -93,22 +95,22 @@ class DataOutput():
 
         return best_solution
 
-
     def operation_output_writer(self, filename):
         writer = pd.ExcelWriter(filename)
         for i in range(20):
             e = self.population_dict[i]
-            e.to_excel(writer, sheet_name='s_%s' %i)
+            e.to_excel(writer, sheet_name='s_%s' % i)
             writer.save()
         writer.save()
 
-    def iteration_record_writer(self,iteration_output, iteration_record, best_solution):
+    def iteration_record_writer(self, iteration_output, iteration_record, best_solution):
         start = start_date()
         writer = pd.ExcelWriter(iteration_output)
         iteration_record.to_excel(writer, sheet_name='iteration')
         _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
 
         start_time = {}
+
         def num_sunday(self, end, start, weekday=6):
             start = datetime.datetime.utcfromtimestamp(start)
             start_year = start.year
@@ -122,13 +124,13 @@ class DataOutput():
             
             sunday, remainder = divmod((end - start).days, 7)
             if (weekday - start.weekday()) % 7 <= remainder:
-                return sunday +1
+                return sunday + 1
             else:
                 return sunday
     
         for key in completion_time:
             
-            completion_time[key] = completion_time[key] * 3600 + start + 24 * 60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start,6)
+            completion_time[key] = completion_time[key] * 3600 + start + 24 * 60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start, 6)
 
             part = best_solution.loc[best_solution.index == key]['part'].values[0]
             operation = best_solution.loc[best_solution.index == key]['operation'].values[0]
@@ -150,11 +152,11 @@ class DataOutput():
 
 
 class ExcelFile():
-    def file_remove(self,file_link):
+
+    def file_remove(self, file_link):
         from os import path, remove
         if path.exists(file_link):
             remove(file_link)
-
 
 '''
                                 if length > 1:
