@@ -10,8 +10,10 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 
 # pylint: disable=C0103
 class ChrosMutation():
-    '''1. each child chromosome with small probabilities 
-       2. Each single chromosome at the gene level to alter information contained in the gene.'''
+    '''
+    1. Each child chromosome with small probabilities 
+    2. Each single chromosome at the gene level to alter information contained in the gene.
+    '''
 
     def __itit__(self, population_dict, parameter, sequence, machine):
         self.population_dict = population_dict
@@ -19,154 +21,206 @@ class ChrosMutation():
         self.sequence = sequence
         self.machine = machine
 
+
     def machine_list(self):
         operation_list = self.machine.columns.tolist()[1:]
         machine_per_operation = {operation: sta(self.machine[self.machine['criteria']\
                                             == 'num_machine'][operation].values[0])
                                                              for operation in operation_list}
-        return sorted(set([i[0] for i in machine_per_operation.values()]))
+
+        machine_list = set([i[0] for i in machine_per_operation.values()])
+        machine_list = sorted(machine_list)
+        return machine_list
+
 
     def machine_assign_time(self):
         '''Randomly selection machine for operation from list of num_machine'''
         machine_list = ChrosMutation.machine_list(self)
         return {operation: 0 for operation in machine_list}
 
+
     def chros_mutation(self):
-        '''Make mutation'''
+        '''Make mutation for all the population'''
         ROAM = self.parameter[self.parameter.name == 'ROAM']['value'].values[0]
         OSSM = self.parameter[self.parameter.name == 'OSSM']['value'].values[0]
-        OSSM_rate = int(self.parameter[self.parameter.name == 'OSSM_rate']['value'].values[0])
+        OSSM_size = self.parameter[self.parameter.name == 'OSSM_size']['value'].values[0]
+        OSSM_size = int(OSSM_size)
         IJMM = self.parameter[self.parameter.name == 'IJMM']['value'].values[0]
-        IJMM_rate = int(self.parameter[self.parameter.name == 'IJMM_rate']['value'].values[0])
+        IJMM_size = self.parameter[self.parameter.name == 'IJMM_size']['value'].values[0]
+        IJMM_size = int(IJMM_size)
         ITSM = self.parameter[self.parameter.name == 'ITSM']['value'].values[0]
 
-        for parent_index, observation in iter(self.population_dict.items()):
+
+        for chros_index, chros in iter(self.population_dict.items()):
+
+            chros_size = len(chros)
 
             # Random Operation Assignment Mutation (ROAM)
             if ROAM > np.random.uniform(0, 1):
-                observation_size = len(observation)
-                df_ROAM_pick = observation.sample(int(observation_size * ROAM),
-                                                        replace=False)
-                df_ROAM_pick = df_ROAM_pick.sort_index()
-                for row_idx, row in df_ROAM_pick.iterrows():
-                    row_num_sequence = row['num_sequence']
-                    row_operation = row['operation']
-                    observation_same_operation = observation.loc[(observation.operation == row_operation)
-                                                                 & (observation.num_sequence == row_num_sequence)]
-                    observation_same_operation_freq = observation_same_operation['machine'].value_counts()
+                '''
+                Reason: Balance assignment frequency for all machine in each operation.
 
-                    if observation_same_operation_freq.sum() > 0:
-                        assigned_machine = observation_same_operation_freq.idxmin()
-                        observation.loc[row_idx, 'machine'] = assigned_machine
+                1. Check  assignment frequency of machine type from start to current gene
+                2. Get the minimum frequency machine#
+                3. Change current machine assignment to the minimum one.
+                '''
+                df_ROAM_pick = chros.sample(int(chros_size * ROAM),
+                                                 replace=False)
+                df_ROAM_pick = df_ROAM_pick.sort_index()
+                for gene_index, gene in df_ROAM_pick.iterrows():
+                    gene_num_sequence = gene['num_sequence']
+                    gene_operation = gene['operation']
+                    chros_same_operation = chros.loc[(chros.operation == gene_operation)
+                                                               & (chros.num_sequence == gene_num_sequence)]
+                    chros_same_operation_freq = chros_same_operation['machine'].value_counts()
+                    if chros_same_operation_freq.sum() > 0:
+                        assigned_machine = chros_same_operation_freq.idxmin()
+                        chros.loc[gene_index, 'machine'] = assigned_machine
+
 
             # Operations Sequence Shift Mutation (OSSM)
+            
             if OSSM > np.random.uniform(0, 1):
-                observation_size = len(observation)
-                observation_idx_list = list(range(0, observation_size))
-                df_OSSM_pick = random.sample(observation_idx_list, OSSM_rate)
+                '''
+                Reason: Change position numbers of gene position to new one
+                        w/o affecting production sequence.
+
+                1. Get randomly list of gene index in chromosome with predefine size
+                2. Ascending Sort the list
+                3. For each element of list, define the gene. Get randomly new gene position index
+                and swap together
+                '''
+                chros_index_list = list(range(0, chros_size))
+                df_OSSM_pick = random.sample(chros_index_list, OSSM_size)
                 df_OSSM_pick = sorted(df_OSSM_pick)
 
-                for row_idx in df_OSSM_pick:
-                    row = observation[observation.index == row_idx]
-                    new_row_idx = random.choice(range(observation.shape[0]))
+                for gene_index in df_OSSM_pick:
+                    gene = chros[chros.index == gene_index]
+                    new_gene_index = random.choice(range(chros.shape[0]))
 
-                    child = pd.DataFrame(columns=['num_job',
+                    new_chros = pd.DataFrame(columns=['num_job',
                                                   'num_lot',
                                                   'part',
                                                   'operation',
                                                   'machine'])
         
                     # Swap position of OSSM pick to new random position in parent
-                    if new_row_idx > row_idx:
-                        child = child.append(observation.loc[0:row_idx - 1, :], ignore_index=True)
-                        child = child.append(observation.loc[row_idx + 1:new_row_idx, :], ignore_index=True)
-                        child = child.append(row, ignore_index=True)
-                        child = child.append(observation.loc[new_row_idx + 1:, :], ignore_index=True)
+                    if new_gene_index > gene_index:
+                        new_chros = new_chros.append(chros.loc[0:gene_index - 1, :], ignore_index=True)
+                        new_chros = new_chros.append(chros.loc[gene_index + 1:new_gene_index, :], ignore_index=True)
+                        new_chros = new_chros.append(gene, ignore_index=True)
+                        new_chros = new_chros.append(chros.loc[new_gene_index + 1:, :], ignore_index=True)
             
-                    elif new_row_idx < row_idx:
-                        child = child.append(observation.loc[0:new_row_idx - 1, :], ignore_index=True)
-                        child = child.append(row, ignore_index=True)
-                        child = child.append(observation.loc[new_row_idx:row_idx - 1, :], ignore_index=True)
-                        child = child.append(observation.loc[row_idx + 1:, :], ignore_index=True)
+                    elif new_gene_index < gene_index:
+                        new_chros = new_chros.append(chros.loc[0:new_gene_index - 1, :], ignore_index=True)
+                        new_chros = new_chros.append(gene, ignore_index=True)
+                        new_chros = new_chros.append(chros.loc[new_gene_index:gene_index - 1, :], ignore_index=True)
+                        new_chros = new_chros.append(chros.loc[gene_index + 1:, :], ignore_index=True)
                     else:
-                        child = observation
+                        new_chros = chros
                     
-                    observation = child
-                observation = InitialSolution.observation_sequence_sort(self, observation)
+                    chros = new_chros
+                chros = InitialSolution.chros_sequence_sort(self, chros)
+
 
             # Inteligent Job Machine Mutation (IJMM)            
             if  IJMM > np.random.uniform(0, 1):
-                
-                IJMM_pick_df = observation.sample(IJMM_rate, replace=False)
-                IJMM_pick_df = IJMM_pick_df.sort_index()
-                for row_idx, row in IJMM_pick_df.iterrows():
-                    row_part = row['part']
-                    row_num_lot = row['num_lot']
-                    row_operation = row['operation']
-                    row_machine = row['machine']
-                    row_num_sequence = row['num_sequence']
-                    prev_row_operation = FitnessCalculation.prev_part_sequence_operation(self, row_part, row_operation, row_num_sequence)
-                    post_row_operation = FitnessCalculation.post_part_sequence_operation(self, row_part, row_operation, row_num_sequence)
-        
-                    try:
-                        row_min_idx = observation.index[(observation.num_lot == row_num_lot)
-                                                        & (observation.operation == prev_row_operation)].tolist()[0]
-                    except:
-                        row_min_idx = 0
-                    try:
-                        row_max_idx = observation.index[(observation.num_lot == row_num_lot)
-                                                        & (observation.operation == post_row_operation)].tolist()[0]
-                    except:
-                        row_max_idx = len(observation)
-        
-                    check_machine_df = observation.loc[(observation.machine == row_machine)
-                                                      & (observation.num_sequence == row_num_sequence)
-                                                      & (observation.index > row_min_idx)
-                                                      & (observation.index < row_max_idx)]
-                    
-                    review_df = observation[row_min_idx:row_max_idx]
-                    df = pd.DataFrame()
-                    for check_row_idx, check_row in check_machine_df.iterrows():
-                        check_row_part = check_row['part']
-                        check_row_num_sequence = check_row['num_sequence']
-                        check_row_num_lot = check_row['num_lot']
+                '''
+                Reason: Changing job priority base on demand priority on the gene order.
 
-                        check_row_operation = check_row['operation']
+                1. Get randomly number of gene in chromosome w/o replacement with predefine sizes
+                2. For each element in above DF:
+                    - Get previous and precedent operation index
+                    - Get DF inside previous and precedent operation index with same machine
+                    - Check each gene in above DF a that can swap together.
+                    - Re-define gene index base on the demand priority
+                3. Update new chromosome index
+                '''
+                IJMM_pick_df = chros.sample(IJMM_size, replace=False)
+                IJMM_pick_df = IJMM_pick_df.sort_index()
+                for gene_index, gene in IJMM_pick_df.iterrows():
+                    gene_part = gene['part']
+                    gene_num_lot = gene['num_lot']
+                    gene_operation = gene['operation']
+                    gene_machine = gene['machine']
+                    gene_num_sequence = gene['num_sequence']
+                    prev_gene_operation = FitnessCalculation.prev_part_sequence_operation(self, gene_part, gene_operation, gene_num_sequence)
+                    post_gene_operation = FitnessCalculation.post_part_sequence_operation(self, gene_part, gene_operation, gene_num_sequence)
         
-                        check_prev_row_operation = FitnessCalculation.prev_part_sequence_operation(self, check_row_part, check_row_operation, check_row_num_sequence)
-                        try:
-                            check_prev_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
-                                                        & (review_df.operation == check_prev_row_operation)].tolist()[0]
-                        except:
-                            check_prev_row_operation_idx = None
-                        
-                        check_post_row_operation = FitnessCalculation.post_part_sequence_operation(self, check_row_part, check_row_operation, check_row_num_sequence)
-                        
-                        try:
-                            check_post_row_operation_idx = review_df.index[(review_df.num_lot == check_row_num_lot)
-                                                        & (review_df.operation == check_post_row_operation)].tolist()[0]
-                        except:
-                            check_post_row_operation_idx = None
-                                        
-                        if ((check_prev_row_operation_idx == None) and
-                            (check_post_row_operation_idx == None)):
-                            df = df.append(check_row)
+                    try:
+                        gene_min_index = chros.index[(chros.num_lot == gene_num_lot)
+                                                        & (chros.operation == prev_gene_operation)].tolist()[0]
+                    except:
+                        gene_min_index = 0
+                    try:
+                        gene_max_index = chros.index[(chros.num_lot == gene_num_lot)
+                                                        & (chros.operation == post_gene_operation)].tolist()[0]
+                    except:
+                        gene_max_index = len(chros)
         
+                    check_machine_df = chros.loc[(chros.machine == gene_machine)
+                                                      & (chros.num_sequence == gene_num_sequence)
+                                                      & (chros.index > gene_min_index)
+                                                      & (chros.index < gene_max_index)]
+                    
+                    review_df = chros[gene_min_index:gene_max_index]
+                    df = pd.DataFrame()
+                    for _, check_gene in check_machine_df.iterrows():
+                        check_gene_part = check_gene['part']
+                        check_gene_num_sequence = check_gene['num_sequence']
+                        check_gene_num_lot = check_gene['num_lot']
+
+                        check_gene_operation = check_gene['operation']
+        
+                        check_prev_gene_operation = FitnessCalculation.prev_part_sequence_operation(self, check_gene_part, check_gene_operation, check_gene_num_sequence)
+                        try:
+                            check_prev_gene_operation_index = review_df.index[(review_df.num_lot == check_gene_num_lot)
+                                                        & (review_df.operation == check_prev_gene_operation)].tolist()[0]
+                        except:
+                            check_prev_gene_operation_index = None
+
+                        check_post_gene_operation = FitnessCalculation.post_part_sequence_operation(self, check_gene_part, check_gene_operation, check_gene_num_sequence)
+
+                        try:
+                            check_post_gene_operation_index = review_df.index[(review_df.num_lot == check_gene_num_lot)
+                                                        & (review_df.operation == check_post_gene_operation)].tolist()[0]
+                        except:
+                            check_post_gene_operation_index = None
+
+                        if ((check_prev_gene_operation_index == None) and
+                            (check_post_gene_operation_index == None)):
+                            df = df.append(check_gene)
+
                     if (len(df) >= 2):
-                        df_idx = df.index.tolist()
+                        df_index = df.index.tolist()
                         df['num_job'] = df['num_job'].astype(int)
                         df = df.sort_values(['num_job'])
-                        df.index = df_idx
+                        df.index = df_index
+                    chros.update(df)
 
-                    observation.update(df)
-            
+
             # Intelligent Task Sort Mutation (ITSM)
             if ITSM > np.random.uniform(0, 1):
-                part_list = sorted(observation['part'].unique())
+                '''
+                Reason: Redefine lot order to the gene as demand priority.
+
+                1. Get parts list of chromosome
+                2. For each part get completion index of each lot to the list
+                3. Sorting list as demand priority order using Quick Sort Algorithms
+                4. For each element in new sorted list:
+                    - Get all elements of removed lot (old) and incoming lot (new) to DF
+                    - Balance the length of 2 DF
+                    - Moving the new values to the old index as same operation and append to new DF
+                    - Keep left over if new length less than old length (keep original index)
+                5. Adding leftover to new chromosome index
+                6. Ascending sorting and redefine new natural index
+                7. Updating the chromosome as new
+                '''
+                part_list = sorted(chros['part'].unique())
                 leftover_df = pd.DataFrame()
                 temp_df = pd.DataFrame()
                 for part in part_list:
-                    group_part_job = observation.loc[observation.part == part][:]
+                    group_part_job = chros.loc[chros.part == part][:]
                     num_sequence_list = sorted(group_part_job['num_sequence'].unique())
                     for num_sequence in num_sequence_list:
                         group_num_sequence = group_part_job.loc[group_part_job.num_sequence == num_sequence]
@@ -185,18 +239,18 @@ class ChrosMutation():
                             
                         new_packing_index_list = quick_sort(packing_index_list, group_num_sequence)
                         
-                        for idx in range(len(packing_index_list)):
-                            new_pack_idx = new_packing_index_list[idx]
-                            old_pack_idx = packing_index_list[idx]
+                        for index in range(len(packing_index_list)):
+                            new_pack_index = new_packing_index_list[index]
+                            old_pack_index = packing_index_list[index]
 
-                            old_lot = group_num_sequence.at[old_pack_idx, 'num_lot']
+                            old_lot = group_num_sequence.at[old_pack_index, 'num_lot']
                             old_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == old_lot].sort_index())
                             
-                            new_lot = group_num_sequence.at[new_pack_idx, 'num_lot']
+                            new_lot = group_num_sequence.at[new_pack_index, 'num_lot']
                             new_df = deepcopy(group_num_sequence[group_num_sequence['num_lot'] == new_lot].sort_index())
 
                             get_length = min(len(old_df), len(new_df))
-                            # print(len(old_df), len(new_df))
+
                             if len(old_df) >= len(new_df):
                                 old_df = old_df[-get_length:]
 
@@ -210,9 +264,8 @@ class ChrosMutation():
                 temp_full = temp_df.append(leftover_df)
                 temp_full = temp_full.sort_index()
                 temp_full = temp_full.reset_index(drop=True)
-                observation.update(temp_full)
+                chros.update(temp_full)
 
-            self.population_dict[parent_index] = observation
+            self.population_dict[chros_index] = chros
 
         return self.population_dict
-

@@ -71,7 +71,7 @@ class InitialSolution():
                     num_lot_each_sequence.loc[demand, sequence] = np.nan
         return num_lot_each_sequence
 
-    def observation_sequence_sort(self, initial_observation):
+    def chros_sequence_sort(self, initial_observation):
         observation = pd.DataFrame()
         for lot in initial_observation['num_lot'].unique():
             # Get current part of lot
@@ -135,18 +135,18 @@ class InitialSolution():
                         i += 1
                         job_num_operation = 'release'
                         job_num_operation_list.append(job_num_operation)
-                    # job select
+                    # job selection
                     selected_job.append(demand_index)        
-                    # part select
+                    # part selection
                     job_num_part_list.append(part)
                     
-                    # Machine Sellect
+                    # machine selection
                     num_machine = self.generate_machine_list(num_sequence, job_num_operation)
                     
                     job_num_machine = random.choice(num_machine)
                     job_num_machine_list.append(job_num_machine)
                     
-                    # Sequence
+                    # num_sequence build list
                     sequence_list.append(num_sequence)
 
         data = {'num_job': selected_job, 'num_lot': selected_job_num_list,
@@ -202,7 +202,7 @@ class InitialSolution():
         for num_observation in range(population_size):
             observation = pd.DataFrame()
             initial_observation = initial_observation.sample(frac=1).reset_index(drop=True)
-            observation = InitialSolution.observation_sequence_sort(self, initial_observation)
+            observation = InitialSolution. chros_sequence_sort(self, initial_observation)
 
             initial_population[num_observation] = observation
         return initial_population

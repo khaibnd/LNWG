@@ -20,10 +20,11 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 from src.gantt.plotly_gantt import PlotlyGantt
 from src.counter_test.population_diversity import DiversityCheck
 
+
 if os.path.isdir('/Users/khaibnd/github-repositories/LNWG/src/data/'):
-    FOLDER = r'/Users/khaibnd/eclipse-workspace/LNWG5/src/data/'
+    FOLDER = r'/Users/khaibnd/github-repositories/LNWG/src/data/'
 else:
-    FOLDER = r'C:\\Users\\khai.bui\\git\\LNWG\\src\data\\'
+    FOLDER = r'C:\\Users\\khai.bui\\git\\LNWG\\src\\data\\'
 
 INPUT_FILE_LINK = FOLDER + 'input.xlsx'
 OUTPUT_FILE_LINK = FOLDER + 'output.xlsx'
@@ -67,6 +68,18 @@ class main():
         best_solution = None
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
+        
+        # Test Fitness
+        
+        output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
+        b_output = pd.read_excel(output2, sheet_name='best_solution')
+        print(b_output)
+        b_fitness = FitnessCalculation.calculate_weighted_tardiness(self, b_output)
+        print('b_fitness', format(b_fitness, ","))
+        
+        
+        
+        
         # Gemerate initial population
         LoadInitial = InitialSolution(self.parameter,
                                       self.demand,
@@ -86,10 +99,10 @@ class main():
         writer = pd.ExcelWriter(DIVERSITY_CHECK)
         gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
         writer.save()
-        print('Diverity Rate:', round(s.mean(unique_value)))
+        print('Diverity Rate:', round(s.mean(unique_value), 2))
         print('Diversity Check Done')
         
-        iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time']
+        iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time', 'diversity_rate']
         iteration_record = pd.DataFrame(columns=iteration_record_columns)
         
         old_population = {}
@@ -122,8 +135,9 @@ class main():
         
             writer = pd.ExcelWriter(DIVERSITY_CHECK)
             gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
+            diversity_rate = round(s.mean(unique_value), 2)
             writer.save()
-            print('Diverity Rate:', round(s.mean(unique_value)))
+            print('Diverity Rate:', diversity_rate)
             print('Diversity Check Done')
 
             # fitness calculation to find the optimal solution
@@ -133,12 +147,12 @@ class main():
                 
                 local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
                 self.population_tardiness_dict[num_observation] = local_tardiness
-                print('o_%s: %s' % (num_observation, local_tardiness))
+                print('o_%s: %s' % (num_observation, format(local_tardiness, ',')))
                 local_tardiness_list.append(local_tardiness)
                 if local_tardiness > global_best_tardiness:
                     global_best_tardiness = local_tardiness.copy()
                     best_solution = observation.copy()
-                    print('global best tardiness: ', global_best_tardiness)
+                    print('global best tardiness: ', "{:,}".format(global_best_tardiness))
                 else:
                     pass
             local_worst_tardiness = min(local_tardiness_list)
@@ -149,7 +163,8 @@ class main():
             new_row_iteration_record = pd.DataFrame([[local_worst_tardiness,
                                                       local_best_tardiness,
                                                       global_best_tardiness,
-                                                      iteration_run_time]],
+                                                      iteration_run_time,
+                                                      diversity_rate]],
                                                       columns=iteration_record_columns)
             iteration_record = iteration_record.append(new_row_iteration_record, ignore_index=True)
             best_solution['num_job'] = best_solution['num_job'].astype(int)
@@ -164,7 +179,7 @@ class main():
                                initial_finished_time,
                                genetic_finished_time)
         # Build plot.ly Gantt Chart
-        # PlotlyGantt.plotly_gantt(self, best_solution)
+        PlotlyGantt.plotly_gantt(self, best_solution)
 
         return global_best_tardiness, best_solution
 
