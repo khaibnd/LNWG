@@ -387,10 +387,6 @@ class FitnessCalculation():
                     # update to main
                     observation.update(recalculate_df)
                         
-                    
-                        
-                    
-                        
             # Step 6.4: maximum lotsize > 1 and minimum lotsize > 1    
             
             # Step 6.5: Cannot group together
