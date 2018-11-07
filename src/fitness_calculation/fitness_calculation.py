@@ -1,4 +1,6 @@
 '''Calculate production leadtime per observation'''
+# -*- coding: utf-8 -*-
+
 import math
 import numpy as np
 import pandas as pd
@@ -33,7 +35,18 @@ class FitnessCalculation():
         except:
             post_part_sequence_operation = None
         return post_part_sequence_operation
-
+    
+    
+    def num_lot_operation_index(self, num_lot, operation, observation):
+        try:
+            index = observation.index[np.logical_and(observation.num_lot == num_lot,
+                                                          observation.operation == operation)].tolist()
+            index = index[0]
+        except:                                 
+            index = None
+        return index
+        
+    
     def calculate_job_processing_time(self, part, operation, num_sequence):
         '''Completion time each num_lot(= batch processing time)'''
         try:
@@ -51,156 +64,34 @@ class FitnessCalculation():
             
         return job_processing_time
 
-    def completion_time_with_daily_work_hour(self,
-                                             job_processing_time,
-                                             row_index,
-                                             machine,
-                                             observation):
-        machine_daily_work_hour = self.machine_criteria.loc[self.machine_criteria.machine == machine, 'work_hour'].values[0]
-        num_day = math.floor((observation.at[row_index, 'completion_time'] - observation.at[row_index, 'machine_completion_time']) / machine_daily_work_hour)
-        free_hour = observation.at[row_index, 'completion_time'] - observation.at[row_index, 'machine_completion_time'] - job_processing_time
-        if num_day > 0 and free_hour == 0:
-            observation.at[row_index, 'machine_completion_time'] = observation.at[row_index, 'completion_time'] + num_day * (24 - machine_daily_work_hour)
-        elif num_day > 0 and free_hour <= num_day * (24 - machine_daily_work_hour):
-            observation.at[row_index, 'machine_completion_time'] = observation.at[row_index, 'completion_time'] + num_day * (24 - machine_daily_work_hour) - free_hour
-        else:
-            observation.at[row_index, 'machine_completion_time'] = observation.at[row_index, 'completion_time']
-        return observation.at[row_index, 'machine_completion_time']
-    
-    
-    def completion_time_plus(self,
-                             job_processing_time,
-                             row):
-        machine = row['machine']
-        machine_daily_work_hour = self.machine_criteria.loc[self.machine_criteria.machine == machine, 'work_hour'].values[0]
-        num_day = math.floor((row['completion_time'] - row['machine_completion_time']) / machine_daily_work_hour)
-        free_hour = row['completion_time'] - row['machine_completion_time'] - job_processing_time
-        if num_day > 0 and free_hour == 0:
-            row['machine_completion_time'] = row['completion_time'] + num_day * (24 - machine_daily_work_hour)
-        elif num_day > 0 and free_hour <= num_day * (24 - machine_daily_work_hour):
-            row['machine_completion_time'] = row['completion_time'] + num_day * (24 - machine_daily_work_hour) - free_hour
-        else:
-            row['machine_completion_time'] = row['completion_time']
-        return row['machine_completion_time']
+ 
+    def gene_ga_calculation(self, job_processing_time, row_index, row, observation):
 
-    
-    def get_machine_completion_time(self, observation, index, machine):
-
-        machine_competion_time_series = observation[np.logical_and(observation.index <= index,
-                                                        observation.machine == machine)].max()
-        machine_competion_time = machine_competion_time_series.get('machine_completion_time')
-
-        return machine_competion_time
-
-
-    def get_lot_completion_time(self, observation, index, num_lot):
-        lot_competion_time_series= observation[np.logical_and(observation.index <= index,
-                                                        observation.num_lot == num_lot)].max()
-        lot_competion_time = lot_competion_time_series.get('lot_completion_time')
-        return lot_competion_time
-    
-    
-    def get_demand_job_completion_time(self, demand_job, observation):
-        demand_job_completion_time = observation[(observation.num_job == demand_job), 'num_job'].max()
-        return demand_job_completion_time
-    
-
-    def ga_calculation(self, job_processing_time, row_index, num_lot, machine, observation):
-        observation.at[row_index, 'machine_completion_time'] = FitnessCalculation.get_machine_completion_time(self,
-                                                                                                              observation,
-                                                                                                              row_index,
-                                                                                                              machine)
-        
-        observation.at[row_index, 'lot_completion_time'] = FitnessCalculation.get_lot_completion_time(self,
-                                                                                                      observation,
-                                                                                                      row_index,
-                                                                                                      num_lot)
-        # Step 5.1: First assignment to machine m and operation                                                                                                  num_lot)
-        if (np.logical_and(observation.at[row_index, 'machine_completion_time'] == 0,
-                           observation.at[row_index, 'lot_completion_time'] == 0)):
-            observation.at[row_index, 'completion_time'] = job_processing_time
-            observation.at[row_index, 'lot_completion_time'] = job_processing_time
-            observation.at[row_index, 'machine_completion_time'] = FitnessCalculation.completion_time_with_daily_work_hour(self,
-                                                                                                                           job_processing_time,
-                                                                                                                           row_index,
-                                                                                                                           machine,
-                                                                                                                           observation)
-        # Step 5.2: First assignment to machine m and operation
-        elif (np.logical_and(observation.at[row_index, 'machine_completion_time'] == 0,
-                           observation.at[row_index, 'lot_completion_time'] > 0)):
-            observation.at[row_index, 'completion_time'] = observation.at[row_index, 'lot_completion_time'] + job_processing_time
-            observation.at[row_index, 'lot_completion_time'] = observation.at[row_index, 'completion_time']
-            observation.at[row_index, 'machine_completion_time'] = FitnessCalculation.completion_time_with_daily_work_hour(self,
-                                                                                                                           job_processing_time,
-                                                                                                                           row_index,
-                                                                                                                           machine,
-                                                                                                                           observation)
-        # Step 5.3: First operation in sequence, and machine m assignment > 1
-        elif (np.logical_and(observation.at[row_index, 'machine_completion_time'] > 0,
-                           observation.at[row_index, 'lot_completion_time'] == 0)):
-            observation.at[row_index, 'completion_time'] = observation.at[row_index, 'machine_completion_time'] + job_processing_time
-            observation.at[row_index, 'lot_completion_time'] = observation.at[row_index, 'completion_time']
-            observation.at[row_index, 'machine_completion_time'] = FitnessCalculation.completion_time_with_daily_work_hour(self,
-                                                                                                                           job_processing_time,
-                                                                                                                           row_index,
-                                                                                                                           machine,
-                                                                                                                           observation)
-        # Step 5.4: Not the first operation, and machine m assignment > 1
-        else:
-            observation.at[row_index, 'completion_time'] = max(observation.at[row_index, 'lot_completion_time'],
-                                                               observation.at[row_index, 'machine_completion_time']) + job_processing_time
-            observation.at[row_index, 'lot_completion_time'] = observation.at[row_index, 'completion_time']
-            observation.at[row_index, 'machine_completion_time'] = FitnessCalculation.completion_time_with_daily_work_hour(self,
-                                                                                                                           job_processing_time,
-                                                                                                                           row_index,
-                                                                                                                           machine,
-                                                                                                                           observation)
-        return observation
-
-
-    def gene_ga_calculation(self, job_processing_time, row, observation):
         machine = row['machine']
         num_lot = row['num_lot']
-
-        row.at['machine_completion_time']= observation.loc[observation.machine == machine][ 'machine_completion_time'].max()
-        row.at['lot_completion_time'] = observation.loc[observation.num_lot == num_lot]['lot_completion_time'].max()
+        machine_daily_work_hour = self.machine_criteria.loc[self.machine_criteria.machine == machine, 'work_hour'].values[0]
         
-        # Step 5.1: First assignment to machine m and operation                                                                                                  num_lot)
-        if (np.logical_and(row.get('machine_completion_time') == 0,
-                           row.get('lot_completion_time') == 0)):
-            row.at['completion_time'] = job_processing_time
-            row.at['lot_completion_time'] = row['completion_time']
-            row.at['machine_completion_time'] = FitnessCalculation.completion_time_plus(self,
-                                                                                     job_processing_time,
-                                                                                     row)
-        # Step 5.2: First assignment to machine m and operation
-        elif (np.logical_and(row.get('machine_completion_time') == 0,
-                           row.get('lot_completion_time') > 0)):
-            row.at['completion_time'] = job_processing_time + row.get('lot_completion_time')
-            row.at['lot_completion_time'] = row['completion_time']
-            row.at['machine_completion_time'] = FitnessCalculation.completion_time_plus(self,
-                                                                                     job_processing_time,
-                                                                                     row)
-        # Step 5.3: First operation in sequence, and machine m assignment > 1
-        elif (np.logical_and(row.get('machine_completion_time') > 0,
-                           row.get('lot_completion_time') == 0)):
-            row.at['completion_time'] = job_processing_time + row.get('machine_completion_time')
-            row.at['lot_completion_time'] = row['completion_time']
-            row.at['machine_completion_time'] = FitnessCalculation.completion_time_plus(self,
-                                                                                     job_processing_time,
-                                                                                     row)
-        # Step 5.3: First operation in sequence, and machine m assignment > 1
-        # Step 5.4: Not the first operation, and machine m assignment > 1
-        else:
-            row.at['completion_time'] = job_processing_time + max(row.get('lot_completion_time'),
-                                                                  row.get('lot_completion_time'))
-            row.at['lot_completion_time'] = row['completion_time']
-            row.at['machine_completion_time'] = FitnessCalculation.completion_time_plus(self,
-                                                                                     job_processing_time,
-                                                                                     row)
-        # Step 5.3: First operation in sequence, and machine m assignment > 1
-        row.update(row)
-        return row
+        #print('origin:', row)
+        machine_completion_time = observation.loc[np.logical_and(observation.index <= row_index,
+                                                                 observation.machine == machine)][ 'machine_completion_time'].max()
+
+        lot_completion_time = observation.loc[np.logical_and(observation.index <= row_index,
+                                                             observation.num_lot == num_lot)]['lot_completion_time'].max()
+
+        
+        completion_time = max(machine_completion_time, lot_completion_time) + job_processing_time
+        
+        # Adding extra hours
+        num_day = math.floor((completion_time -  machine_completion_time)/ machine_daily_work_hour)
+        free_hour = completion_time -  machine_completion_time - job_processing_time
+
+        if num_day > 0 and free_hour == 0:
+            completion_time = completion_time + num_day * (24 - machine_daily_work_hour)
+        
+        elif num_day > 0 and free_hour <= num_day * (24 - machine_daily_work_hour):
+            completion_time = completion_time + num_day * (24 - machine_daily_work_hour) - free_hour
+
+        return completion_time
 
     def line_index(self, machine, num_sequence):
         try:
@@ -215,9 +106,7 @@ class FitnessCalculation():
 
 
     def get_groupable_df(self, part, operation, machine, check_df):
-        criteria_df = self.criteria.loc[:, ['part', 'coat_design', 'fabrication_part']]
-        check_df = check_df.merge(criteria_df, on='part', how='left')
-        
+
         check_df = check_df.loc[np.logical_and(check_df.completion_time == 0, check_df.machine == machine)]
 
         if (operation == 'coat'):
@@ -254,7 +143,7 @@ class FitnessCalculation():
         else:
             print('check group df condition')
 
-    def get_different_machine_groupable_df(self, part, operation, machine, check_df):
+    def get_different_machine_groupable_df(self, part, operation, check_df):
         criteria_df = self.criteria.loc[:, ['part', 'coat_design', 'fabrication_part']]
         check_df = check_df.merge(criteria_df, on='part', how='left')
     
@@ -304,63 +193,37 @@ class FitnessCalculation():
         observation['completion_time'] = pd.Series([0.00] * observation_size)
         observation['machine_completion_time'] = pd.Series([0.00] * observation_size)
         observation['lot_completion_time'] = pd.Series([0.00] * observation_size)
+
+        
+        criteria_df = self.criteria.loc[:, ['part', 'coat_design', 'fabrication_part']]
+        observation = observation.merge(criteria_df, on='part', how='left')
+        observation['prev_operation'] = observation.apply(lambda row: FitnessCalculation.prev_part_sequence_operation(self,
+                                                                                                                      row.part,
+                                                                                                                      row.operation,
+                                                                                                                      row.num_sequence), axis=1)
+        
+        observation['post_operation'] = observation.apply(lambda row: FitnessCalculation.post_part_sequence_operation(self,
+                                                                                                                      row.part,
+                                                                                                                      row.operation,
+                                                                                                                      row.num_sequence), axis=1)
+        
+        observation['prev_operation_index'] = observation.apply(lambda row: FitnessCalculation.num_lot_operation_index(self,
+                                                                                                                       row.num_lot,
+                                                                                                                       row.prev_operation,
+                                                                                                                       observation), axis=1)
+        observation['post_operation_index'] = observation.apply(lambda row: FitnessCalculation.num_lot_operation_index(self,
+                                                                                                                       row.num_lot,
+                                                                                                                       row.post_operation,
+                                                                                                                       observation), axis=1)
+        
         pending_lot = []
 
         for row_index, row in observation.iterrows():
             print(row_index)
-            def check_groupable_condition(self):
-
-                groupable_condition = False
-
-                if (group_row['operation'] == 'coat' and
-                    group_row['machine'] == machine):
-                    coat_design = self.criteria.loc[self.criteria.part == part, 'coat_design'].values[0]
-                    group_part = group_row['part']
-                    group_coat_design = self.criteria.loc[self.criteria.part == group_part, 'coat_design'].values[0]
-
-                    if group_coat_design == coat_design:
-                        groupable_condition = True
-                        
-                        return groupable_condition
-                
-                if (group_row['operation'] == 'block_wedge' and
-                    group_row['machine'] == machine):
-                    coat_design = self.criteria.loc[self.criteria.part == part, 'coat_design'].values[0]
-                    group_part = group_row['part']
-                    group_coat_design = self.criteria.loc[self.criteria.part == group_part, 'coat_design'].values[0]
-
-                    if group_coat_design == coat_design:
-                        groupable_condition = True
-                        return groupable_condition
-                
-                
-                
-                elif (group_row['operation'] == 'rob_slicing' and
-                    group_row['machine'] == machine):
-                    fabrication_part = self.criteria.loc[self.criteria.part == part, 'fabrication_part'].values[0]
-                    group_part = group_row['part']
-                    group_fabrication_part = self.criteria.loc[self.criteria.part == group_part, 'fabrication_part'].values[0]
-
-                    if group_fabrication_part == fabrication_part:
-                        groupable_condition = True
-                        return groupable_condition
-                    
-                    
-                elif (group_row['operation'] != 'rob_slicing' and
-                      group_row['operation'] != 'coat' and
-                      group_row['part'] == part and
-                      group_row['operation'] == operation and
-                      group_row['machine'] == machine and
-                      group_row['num_sequence'] == num_sequence):
-                    groupable_condition = True
-                    return groupable_condition
-                else:
-                    return groupable_condition
-
-
+            
             '''Start main calculation'''
             # Check the job yet observe
-            if (row.get('completion_time') == 0):
+            if (observation.at[row_index, 'completion_time'] == 0):
                 num_lot = row['num_lot']
                 part = row['part']
                 operation = row['operation']
@@ -385,89 +248,61 @@ class FitnessCalculation():
                 # Step 6.1: Maximum and minimum lot per run = 1
                 if (np.logical_and(np.logical_and(max_lotsize == 1, min_lotsize == 1),
                                    num_lot not in pending_lot)):
-                    observation.at[row_index] = (FitnessCalculation.gene_ga_calculation(self, job_processing_time, row, observation))
+                    completion_time = FitnessCalculation.gene_ga_calculation(self, job_processing_time, row_index, row, observation)
+                    observation.at[row_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']] = completion_time
+                    #print(observation.loc[row_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']])
+                            
                     observation.at[row_index, 'min_assign'] += 1
                     observation.at[row_index, 'max_assign'] += 1
-                    
-                    
 
                 # Step 6.2: maximum lotsize > 1 and minimum lotsize = 1
                 elif (np.logical_and(np.logical_and(max_lotsize > 1, min_lotsize == 1),
                                    num_lot not in pending_lot)):
-                    lot_size = 1
-                    observation.at[row_index] = (FitnessCalculation.gene_ga_calculation(self, job_processing_time, row, observation))
-                    succeed_observation = observation.loc[row_index + 1:, :]
-    
-                    # Review groupability of precedence genes
-                    change_lotsize_group_index = []
-                    for group_row_index, group_row in succeed_observation.iterrows():
-                        # Step 6.2.1 : Check total lot per run in machine should lower than maximum.
-                        if lot_size < max_lotsize:
-    
-                            if (check_groupable_condition(self) == True):
-                                prev_operation = FitnessCalculation.prev_part_sequence_operation(self,
-                                                                                                 part,
-                                                                                                 operation,
-                                                                                                 num_sequence)
-                                # Step 6.2.1.2.1: The group index is first operation of sequence
-                                if prev_operation == None:
-                                    print('First operation')
-                                    observation.at[row_index, 'completion_time'] = row.get('completion_time')
-                                    observation.at[row_index, 'lot_completion_time'] = row.get('lot_completion_time')
-                                    observation.at[row_index, 'machine_completion_time'] = row.get('machine_completion_time')
-                                    lot_size += 1
-                                    change_lotsize_group_index.append(group_row_index)
-                                # Step 6.2.1.2.1: The group index is not first operation of sequence    
-                                else:
-                                    prev_group_observation = observation.loc[:row_index - 1, :]
-                                    try:
-                                        group_row_num_lot = group_row['num_lot']
-                                        prev_row_index = prev_group_observation.index[(prev_group_observation['num_lot'] == group_row_num_lot)
-                                                                            & (prev_group_observation['operation'] == prev_operation)].tolist()[0]
-                                    except:
-                                        prev_row_index = None
-    
-                                    # Step 6.2.1.2.1.1: Previous operation of observation exists
-                                    if prev_row_index != None:
-    
-                                        # Step 6.2.1.2.1.1.1: Job of Previous operation finished BEFORE group job start
-                                        if observation.at[prev_row_index, 'completion_time'] < observation.at[row_index, 'completion_time']:
-                                            observation.at[row_index, 'completion_time'] = row.get('completion_time')
-                                            observation.at[row_index, 'lot_completion_time'] = row.get('lot_completion_time')
-                                            observation.at[row_index, 'machine_completion_time'] = row.get('machine_completion_time')
-                                            lot_size += 1
-                                            change_lotsize_group_index.append(group_row_index)
-                                        # Step 6.2.1.2.1.1.1: Job of Previous operation finished AFTER group job start
-                                        else:
-                                            try:
-                                                group_row_num_lot = group_row['num_lot']
-                                                prev_row_index = observation.index[(observation['num_lot'] == group_row_num_lot)
-                                                                                    & (observation['operation'] == prev_operation)].tolist()[0]
-                                            except:
-                                                prev_row_index = None
-            
-                                            # Step 6.2.1.2.1.1: Previous operation of observation exists
-                                            if prev_row_index == None:
-            
-                                                # Step 6.2.1.2.1.1.1: Job of Previous operation finished BEFORE group job start
-                                                if observation.at[prev_row_index, 'completion_time'] < observation.at[row_index, 'completion_time']:
-                                                    observation.at[row_index, 'completion_time'] = row.get('completion_time')
-                                                    observation.at[row_index, 'lot_completion_time'] = row.get('lot_completion_time')
-                                                    observation.at[row_index, 'machine_completion_time'] = row.get('machine_completion_time')
-                                                    lot_size += 1
-                                                    change_lotsize_group_index.append(group_row_index)
-                                                pass
-                                            pass
-                                    pass
-                            
-                            # Step 6.2.1.3: Operation canot group together
-                            pass
-                        observation.at[row_index, 'max_assign'] = lot_size
-                        observation.at[change_lotsize_group_index, 'max_assign'] = lot_size
-                        observation.at[change_lotsize_group_index, 'min_assign'] = 1
-                        # Step 6.2.1 : Total lot per run in machine over maximum.
-                        pass
-                    observation.at[row_index, 'max_assign'] = lot_size
+
+                    completion_time = FitnessCalculation.gene_ga_calculation(self, job_processing_time, row_index, row, observation)
+                    #print('completion_time', completion_time)
+                    
+                    succeed_observation = observation.loc[row_index:, :]
+                    #print(succeed_observation)
+                    groupable_df = FitnessCalculation.get_groupable_df(self, part, operation, machine, succeed_observation)
+                    #print(operation)
+                    #print('groupable_df index', groupable_df[['num_lot', 'part','operation' ]])
+                    #print(groupable_df[['num_lot', 'part', 'operation']])
+
+                    #The group index is first operation of sequence
+                    
+                    if (pd.isnull(row['prev_operation_index'])):
+                        print('First operation of the lot')
+
+                        assign_df = groupable_df[:max_lotsize]
+                        assign_df_index = assign_df.index.tolist()
+
+                        lot_size = len(assign_df_index)
+
+                        observation.at[assign_df_index, 'max_assign'] = lot_size
+                        observation.at[assign_df_index, 'min_assign'] = 1
+                        observation.at[assign_df_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']] = completion_time
+                        #print(observation.loc[row_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']])
+                     
+                        #Cách tăng tốc độ assignment bằng np.where
+                        #observation['completion_time'] = np.where(observation.index.isin([assign_df_index]), completion_time, observation['completion_time'])
+                        
+                    else:
+                        assign_df = groupable_df.loc[np.logical_or(groupable_df.prev_operation_index < row_index,
+                                                                   pd.isnull(groupable_df.prev_operation_index))]
+                        
+                        assign_df_index = assign_df.index[:max_lotsize].tolist()
+                        assign_df_index = assign_df.index.tolist()
+                        #print(assign_df_index)
+                        print('aaaaaaaaaaaaaaaaaaaaaaa')
+                        lot_size = len(assign_df_index)
+                        observation.at[assign_df_index, 'max_assign'] = lot_size
+                        observation.at[assign_df_index, 'min_assign'] = 1
+                        #print('completion_time2', completion_time)
+                        observation.at[assign_df_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']] = completion_time
+                        #print(observation.loc[assign_df_index, ['completion_time', 'machine_completion_time', 'lot_completion_time']])
+                     
+                        
                 # Step 6.3: minimum lotsize > 1
                 elif (np.logical_and( min_lotsize == max_lotsize, num_lot not in pending_lot)):
 
@@ -486,8 +321,8 @@ class FitnessCalculation():
 
                         min_lotsize_index = groupable_precede_observation_df.index
                         observation.loc[min_lotsize_index,['min_assign', 'max_assign']] = min_lotsize
-                        print(min_lotsize)
-                        print(observation.loc[min_lotsize_index,['min_assign', 'max_assign']])
+                        #print(min_lotsize)
+                        #print(observation.loc[min_lotsize_index,['min_assign', 'max_assign']])
                         # Con thieu dieu kien can max_lotsize phai la max hien tai va cai moi
                         observation.at[min_lotsize_index, 'completion_time'] = observation.at[row_index, 'completion_time']
                         observation.at[min_lotsize_index, 'lot_completion_time'] = observation.at[row_index, 'lot_completion_time']
@@ -522,6 +357,7 @@ class FitnessCalculation():
                     # Review the succeed genes in chros
                     else:
                         pending_lot = pending_lot + [row['num_lot']]
+
                 '''
                 else:
                     # Check group of machine, instead of specific machine
@@ -565,12 +401,14 @@ class FitnessCalculation():
                         observation.at[min_lotsize_index, 'lot_completion_time'] = observation.at[row_index, 'lot_completion_time']
                         observation.at[min_lotsize_index, 'machine_completion_time'] = observation.at[row_index, 'machine_completion_time']
                 '''
-
+        
         writer = pd.ExcelWriter(r'/Users/khaibnd/github-repositories/LNWG/src/data/new_output2.xlsx')
         observation.to_excel(writer, sheet_name='output')
         writer.save()
+
         
         return observation
+    
 
     def calculate_makespan(self, observation):
         '''Calculate Demand total makespan'''
