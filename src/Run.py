@@ -73,7 +73,7 @@ class main():
         
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
-        print(b_output)
+
         b_fitness = FitnessCalculation.calculate_weighted_tardiness(self, b_output)
         print('b_fitness', format(b_fitness, ","))
         
@@ -150,8 +150,8 @@ class main():
                 print('o_%s: %s' % (num_observation, format(local_tardiness, ',')))
                 local_tardiness_list.append(local_tardiness)
                 if local_tardiness > global_best_tardiness:
-                    global_best_tardiness = local_tardiness.copy()
-                    best_solution = observation.copy()
+                    global_best_tardiness = deepcopy(local_tardiness)
+                    best_solution = deepcopy(observation)
                     print('global best tardiness: ', "{:,}".format(global_best_tardiness))
                 else:
                     pass
@@ -159,7 +159,7 @@ class main():
             local_best_tardiness = max(local_tardiness_list)
             iteration_finished = timer()
             iteration_run_time = iteration_finished - iteration_start
-            
+
             new_row_iteration_record = pd.DataFrame([[local_worst_tardiness,
                                                       local_best_tardiness,
                                                       global_best_tardiness,
@@ -172,7 +172,7 @@ class main():
 
         # Adding timeline to best solution
         genetic_finished_time = timer() - program_start
-        
+
         DataOutput.data_writer(self, OUTPUT_FILE_LINK,
                                global_best_tardiness,
                                best_solution,
