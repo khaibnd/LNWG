@@ -69,16 +69,14 @@ class main():
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         
+        '''
         # Test Fitness
-        
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
 
         b_fitness = FitnessCalculation.calculate_weighted_tardiness(self, b_output)
         print('b_fitness', format(b_fitness, ","))
-        
-        
-        
+        '''
         
         # Gemerate initial population
         LoadInitial = InitialSolution(self.parameter,
@@ -89,8 +87,6 @@ class main():
                                       self.sequence)
         self.population_dict = LoadInitial.generate_initial_population()
         DataOutput.operation_output_writer(self, INITIAL_OUTPUT)
-
-        gene_idx_in_pop = DiversityCheck.check_population_diversity(self)
 
         initial_finished_time = timer() - program_start
         print('Initial Solution Generated')

@@ -225,15 +225,13 @@ class FitnessCalculation():
                                                                                         row.num_lot,
                                                                                         row.post_operation,
                                                                                         observation), axis=1)
-        pending_lot = []
-        
+
         for row_index, row in observation.iterrows():
             '''Start main calculation'''
-            print('row_index', row_index)
+            #print('row_index', row_index)
             # Check the job yet observe
             if (np.logical_and(observation.at[row_index, 'completion_time'] == 0,
                                FitnessCalculation.assign_condition(self, row, observation))):
-                num_lot = row['num_lot']
                 part = row['part']
                 operation = row['operation']
                 machine = row['machine']
@@ -271,13 +269,13 @@ class FitnessCalculation():
 
                     #The group index is first operation of sequence
                     if (pd.isnull(row['prev_operation_index'])):
-                        print('max first operation of the lot')
+                        #print('max first operation of the lot')
                         assign_df = groupable_df
 
                         #Cách tăng tốc độ assignment bằng np.where
                         #observation['completion_time'] = np.where(observation.index.isin([assign_df_index]), completion_time, observation['completion_time'])
                     else:
-                        print('max grouping at middle')
+                        #print('max grouping at middle')
                         assign_df = groupable_df.loc[np.logical_or(groupable_df.prev_operation_index < row_index,
                                                                    pd.isnull(groupable_df.prev_operation_index))]
                     assign_df_index = assign_df.index[:max_lotsize].tolist()
@@ -300,7 +298,7 @@ class FitnessCalculation():
 
                     # Previous contain enough lot for minimum lotsize load
                     if assign_df_size == min_lotsize:
-                        print('min full assign same machine')
+                        #print('min full assign same machine')
                         assign_df_index = assign_df.index.tolist()
                         observation.loc[assign_df_index, ['min_assign', 'max_assign']] = assign_df_size
                         #print(min_lotsize)
@@ -323,7 +321,7 @@ class FitnessCalculation():
                         
                         if(assign_df_size == 2 * min_lotsize):
                             assign_df = assign_df[:min_lotsize, :]
-                            print('min full assign different machine')
+                            #print('min full assign different machine')
                             assign_df_index = assign_df.index.tolist()
                             observation.loc[assign_df_index, ['min_assign', 'max_assign']] = assign_df_size
                             #print(min_lotsize)
@@ -351,22 +349,12 @@ class FitnessCalculation():
                                 assign_df = FitnessCalculation.get_groupable_df(self, part, operation, machine, precede_observation)
                                 assign_df_size = len(assign_df)
                                 assign_df_index = assign_df.index.tolist()
-                                print('The leftover')
+                                #print('The leftover')
                                 observation.loc[assign_df_index, ['min_assign', 'max_assign']] = assign_df_size
                                 observation.at[row_index, ['completion_time',\
                                                          'machine_completion_time',
                                                          'lot_completion_time']] = completion_time
-
-        writer = pd.ExcelWriter(r'/Users/khaibnd/github-repositories/LNWG/src/data/new_output2.xlsx')
-        observation.to_excel(writer, sheet_name='output')
-        writer.save()
         return observation
-
-    def calculate_makespan(self, observation):
-        '''Calculate Demand total makespan'''
-        prev_operation_completion_time, _, __ = FitnessCalculation.calculate_finished_time(self, observation)
-        makespan = max(prev_operation_completion_time.values())
-        return round(makespan, 1)
 
     def calculate_weighted_tardiness(self, observation):
         '''Calculate Demand total Weight Tardiness'''
@@ -380,5 +368,5 @@ class FitnessCalculation():
             demand_job_completion_time = observation.loc[observation.num_job == demand_job]['completion_time'].max()
             if ((lead_time[demand_job] * 24 - demand_job_completion_time) * demand_weight[demand_job]) < 0:
                 weighted_tardiness += ((lead_time[demand_job] * 24 - demand_job_completion_time) * demand_weight[demand_job])
-        observation.drop(['min_assign', 'max_assign', 'completion_time'], axis=1, inplace=True)
+        observation.drop(['min_assign', 'max_assign', 'completion_time','machine_completion_time', 'lot_completion_time', 'prev_operation', 'post_operation', 'prev_operation_index', 'post_operation_index' ], axis=1, inplace=True)
         return round(weighted_tardiness, 1)
