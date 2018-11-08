@@ -50,7 +50,8 @@ class DataOutput():
                                  columns=['criteria', 'value'])
         parameter.to_excel(writer, sheet_name='parameter')
 
-        _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
+        observation = FitnessCalculation.calculate_finished_time(self, best_solution)
+        completion_time = observation['completion_time'].tolist
 
         start_time = {}
 

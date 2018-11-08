@@ -78,7 +78,7 @@ class main():
         print('b_fitness', format(b_fitness, ","))
         '''
         
-        # Gemerate initial population
+        # Generate initial population
         LoadInitial = InitialSolution(self.parameter,
                                       self.demand,
                                       self.wip,
