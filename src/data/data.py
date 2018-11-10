@@ -8,9 +8,9 @@ from src.fitness_calculation.fitness_calculation import FitnessCalculation
 class DataInput():
     '''Get DataFrame Input from Excel file'''
 
-    def data_reader(self, input):
+    def data_reader(self, input_):
         '''Read excel file to dataFrame'''
-        df_input = pd.ExcelFile(input)
+        df_input = pd.ExcelFile(input_)
         sheet_to_df_map = {}
         for sheet_name in df_input.sheet_names:
             sheet_to_df_map[sheet_name] = df_input.parse(sheet_name)
@@ -106,7 +106,7 @@ class DataOutput():
 
     def iteration_record_writer(self, iteration_output, iteration_record, best_solution):
         writer = pd.ExcelWriter(iteration_output)
-        #iteration_record.to_excel(writer, sheet_name='iteration')
+        iteration_record.to_excel(writer, sheet_name='iteration')
         def num_sunday(self, end, start, weekday=6):
             start = datetime.datetime.utcfromtimestamp(start)
             start_date = start.date
@@ -181,7 +181,7 @@ class DataOutput():
         best_solution['processing_time_plus'] = best_solution.apply(lambda row:
                                                                 FitnessCalculation.calculate_job_processing_time_plus(self,
                                                                                                                       row.processing_time,
-                                                                                                                      row.row,
+                                                                                                                      row,
                                                                                                                       best_solution), axis=1)
         
         best_solution = FitnessCalculation.calculate_completion_time(self, best_solution.index.tolist(), best_solution)
@@ -193,28 +193,9 @@ class DataOutput():
         best_solution['calendar_start_time'] = best_solution.apply(lambda row: 
                                                                    calculate_calendar_start_time(self,
                                                                                                  row), axis=1)
-        '''
-        start_time = {}
-        for key, value in enumerate(completion_time):
-            
-            completion_time[key] = completion_time[key] * 3600 + start + 24 * 60 * 60 * num_sunday(self, completion_time[key] * 3600 + start, start, 6)
 
-            part = best_solution.loc[best_solution.index == key]['part'].values[0]
-            operation = best_solution.loc[best_solution.index == key]['operation'].values[0]
-            num_sequence = best_solution.loc[best_solution.index == key]['num_sequence'].values[0]
-            job_run_time = FitnessCalculation.calculate_job_processing_time(self, part, operation, num_sequence)
-            start_time[key] = completion_time[key] - job_run_time * 60 * 60
-            completion_time[key] = datetime.datetime.utcfromtimestamp(completion_time[key])
-            start_time[key] = datetime.datetime.utcfromtimestamp(start_time[key])
+        best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine', 'num_sequence', 'max_assign', 'processing_time', 'processing_time_plus', 'calendar_start_time', 'calendar_completion_time']]
 
-        completion_time = pd.Series(completion_time)
-        best_solution = pd.concat([best_solution,
-                                   completion_time.rename('completion_time')], axis=1)
-        
-        start_time = pd.Series(start_time) 
-        best_solution = pd.concat([best_solution, start_time.rename('start_time')], axis=1)
-        best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine', 'num_sequence', 'start_time', 'completion_time']]
-        '''
         best_solution.to_excel(writer, sheet_name='best_solution')
         writer.save()
 

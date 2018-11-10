@@ -70,7 +70,7 @@ class main():
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         
-        
+        '''
         # Test Fitness
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
@@ -81,7 +81,7 @@ class main():
         
 
         sys.exit()
-        
+        '''
         # Generate initial population
         LoadInitial = InitialSolution(self.parameter,
                                       self.demand,
