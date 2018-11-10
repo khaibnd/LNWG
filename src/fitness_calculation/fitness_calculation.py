@@ -425,10 +425,7 @@ class FitnessCalculation():
                                 observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
                             
         return observation
-    
-    
-    def calculate_weighted_tardiness(self, observation):
-        '''Calculate Demand total Weight Tardiness'''
+    def adding_gene_code(self, observation):
         observation_size = len(observation)
         observation['review'] = pd.Series([0] * observation_size)
         observation['min_assign'] = pd.Series([0] * observation_size)
@@ -465,6 +462,11 @@ class FitnessCalculation():
                                                                                         row.num_lot,
                                                                                         row.post_operation,
                                                                                         observation), axis=1)
+        return observation
+    
+    def calculate_weighted_tardiness(self, observation):
+        '''Calculate Demand total Weight Tardiness'''
+        observation = FitnessCalculation.adding_gene_code(self, observation)
         weighted_tardiness = 0
         demand_weight = self.demand['weight'].tolist()
         lead_time = self.demand['lead_time'].tolist()
