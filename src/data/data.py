@@ -71,11 +71,11 @@ class DataOutput():
         return calendar_time
 
 
-    def data_writer(self, output, best_tardiness,
+    def data_writer(self, best_tardiness,
                     best_solution, initial_finished_time,
-                    genetic_finished_time):
+                    genetic_finished_time, output_):
         '''Write Running Parameters to Excel file'''
-        writer = pd.ExcelWriter(output)
+        writer = pd.ExcelWriter(output_)
 
         parameter = pd.DataFrame([['best_tardiness', best_tardiness],
                                   ['initial_finished_time', initial_finished_time],
@@ -122,7 +122,7 @@ class DataOutput():
         return print('best_tardiness', best_tardiness)
 
 
-    def iteration_record_writer(self, iteration_output, iteration_record, best_solution):
+    def iteration_record_writer(self, iteration_record, best_solution, iteration_output):
         '''Record itertion '''
         writer = pd.ExcelWriter(iteration_output)
         iteration_record.to_excel(writer, sheet_name='iteration')
@@ -162,10 +162,11 @@ class DataOutput():
         writer.save()
 
 
-    def operation_output_writer(self, filename):
-        '''Writer'''
+    def operation_output_writer(self, population_dict, filename):
+        '''Writer all population chromosome to Excel file'''
         writer = pd.ExcelWriter(filename)
-        for i in range(20):
+        pop_len = len(population_dict)
+        for i in range(pop_len):
             e = self.population_dict[i]
             e.to_excel(writer, sheet_name='s_%s' % i)
             writer.save()

@@ -6,6 +6,7 @@ import plotly.plotly as py
 import plotly.figure_factory as ff
 from src.fitness_calculation.start_date import start_date
 from src.fitness_calculation.fitness_calculation import FitnessCalculation
+from src.data.data import DataOutput
 
 plotly.tools.set_credentials_file(username='khaibnd', api_key='pDObqrmhM1Mq6KqUKte1')
 start_date = start_date()
@@ -24,22 +25,44 @@ class PlotlyGantt():
         # m_keys = best_solution['machine'].unique()
         gantt_dataframe = []
 
-        print(best_solution)
-        _, __, completion_time = FitnessCalculation.calculate_finished_time(self, best_solution)
-        print(completion_time)
+        # Adding extention gene code
+        best_solution = FitnessCalculation.adding_gene_code(self, best_solution)     
+        # Calculate each gene completion time     
+        best_solution['processing_time'] = best_solution.apply(lambda row:
+                                                                FitnessCalculation.
+                                                                calculate_job_processing_time(self,
+                                                                                              row.part,
+                                                                                              row.operation,
+                                                                                              row.num_sequence), axis=1)
+        best_solution['processing_time_plus'] = best_solution.apply(lambda row:
+                                                                FitnessCalculation.
+                                                                calculate_job_processing_time_plus(self,
+                                                                                                   row.processing_time,
+                                                                                                   row,
+                                                                                                   best_solution), axis=1)
+        
+        # Calculate each gene completion time
+        best_solution = FitnessCalculation.calculate_completion_time(self, best_solution.index.tolist(), best_solution)
+
+        # Convert start time & completion time to UTC time
+        best_solution['calendar_completion_time'] = best_solution.apply(lambda row:
+                                                                        DataOutput.
+                                                                        calculate_calendar_completion_time(self,
+                                                                                                           row), axis=1)
+        best_solution['calendar_start_time'] = best_solution.apply(lambda row: 
+                                                                   DataOutput.calculate_calendar_start_time(self,
+                                                                                                            row), axis=1)
+        #Slice the raw to the final report
+        best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine',
+                                       'num_sequence', 'max_assign', 'processing_time', 'processing_time_plus',
+                                       'calendar_start_time', 'calendar_completion_time']]
 
         for row_index, row in best_solution.iterrows():
-            part = row['part']
             num_job = row['num_job']
-            operation = row['operation']
             machine = row['machine']
-            num_sequence = row['num_sequence']
+            gantt_finish = row['calendar_completion_time']
 
-            job_run_time = FitnessCalculation.calculate_job_processing_time(self, part, operation, num_sequence)
-            finish = completion_time[row_index] * 60 * 60 + start_date
-            gantt_finish = pd.to_datetime(finish, unit='s')
-            start = finish - job_run_time * 60 * 60
-            gantt_start = pd.to_datetime(start, unit='s')
+            gantt_start = row['calendar_start_time']
 
             gantt_dataframe.append(dict(Task='Machine %s' % (machine),
                                         Start='%s' % (str(gantt_start)),

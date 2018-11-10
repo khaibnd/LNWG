@@ -70,18 +70,18 @@ class main():
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         
-        '''
+        
         # Test Fitness
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
 
         #b_fitness = FitnessCalculation.calculate_weighted_tardiness(self, b_output)
         #print('b_fitness', format(b_fitness, ","))
-        DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, 0, b_output)
-        
+        #DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, 0, b_output)
+        PlotlyGantt.plotly_gantt(self, b_output)
 
         sys.exit()
-        '''
+        
         # Generate initial population
         LoadInitial = InitialSolution(self.parameter,
                                       self.demand,
@@ -90,7 +90,7 @@ class main():
                                       self.machine,
                                       self.sequence)
         self.population_dict = LoadInitial.generate_initial_population()
-        DataOutput.operation_output_writer(self, INITIAL_OUTPUT)
+        DataOutput.operation_output_writer(self, self.population_dict, INITIAL_OUTPUT)
 
         initial_finished_time = timer() - program_start
         print('Initial Solution Generated')
@@ -102,38 +102,40 @@ class main():
         print('Diverity Rate:', round(s.mean(unique_value), 2))
         print('Diversity Check Done')
         
-        iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness', 'iteration_run_time', 'diversity_rate']
+        iteration_record_columns = ['worst_tardiness', 'best_tardiness', 'global_best_tardiness',
+                                    'iteration_run_time', 'diversity_rate']
         iteration_record = pd.DataFrame(columns=iteration_record_columns)
-        
         old_population = {}
         old_population_tardiness = {}
+
+        # Main Iteration GA
         for iteration in range(num_iteration):
             iteration_start = timer()
             print('Iteration#:', iteration)
 
-            # k-way selection
-            
-            self.population_dict, old_population, old_population_tardiness = ChrosKWaySelection.generate_df_selection(self,
-                                                                                                                      iteration,
-                                                                                                                      old_population,
-                                                                                                                      old_population_tardiness)
-            # DataOutput.operation_output_writer(self, SELECTION_OUTPUT)
+            # GA Selection: k-way selection
+            self.population_dict, old_population,\
+                                  old_population_tardiness = ChrosKWaySelection.\
+                                                                generate_df_selection(self,
+                                                                                      iteration,
+                                                                                      old_population,
+                                                                                      old_population_tardiness)
+            # DataOutput.operation_output_writer(self, self.population_dict, SELECTION_OUTPUT)
             print('k-way selection Generated')
 
-            # crossover
+            # GA Crossover
             self.population_dict = ChrosCrossover.chros_crossover(self)
-            # DataOutput.operation_output_writer(self, CROSSOVER_OUTPUT)
+            # DataOutput.operation_output_writer(self, self.population_dict, CROSSOVER_OUTPUT)
             print('Crossover Generated')
 
-            # mutation
+            # GA Mutation
             self.population_dict = ChrosMutation.chros_mutation(self)
-            # DataOutput.operation_output_writer(self, MUTATION_OUTPUT)
-            
+            # DataOutput.operation_output_writer(self, self.population_dict, MUTATION_OUTPUT)
             print('Mutation Generated')
             
             gene_idx_in_pop, unique_value = DiversityCheck.check_population_diversity(self)
-        
             writer = pd.ExcelWriter(DIVERSITY_CHECK)
+
             gene_idx_in_pop.to_excel(writer, sheet_name='gene_idx_in_pop')
             diversity_rate = round(s.mean(unique_value), 2)
             writer.save()
@@ -144,7 +146,7 @@ class main():
             local_tardiness_list = []
 
             for num_observation, observation in iter(self.population_dict.items()):
-                
+
                 local_tardiness = FitnessCalculation.calculate_weighted_tardiness(self, observation)
                 self.population_tardiness_dict[num_observation] = local_tardiness
                 print('o_%s: %s' % (num_observation, format(local_tardiness, ',')))
@@ -155,29 +157,28 @@ class main():
                     print('global best tardiness: ', "{:,}".format(global_best_tardiness))
                 else:
                     pass
+
             local_worst_tardiness = min(local_tardiness_list)
             local_best_tardiness = max(local_tardiness_list)
             iteration_finished = timer()
             iteration_run_time = iteration_finished - iteration_start
 
-            new_row_iteration_record = pd.DataFrame([[local_worst_tardiness,
-                                                      local_best_tardiness,
-                                                      global_best_tardiness,
-                                                      iteration_run_time,
+            new_row_iteration_record = pd.DataFrame([[local_worst_tardiness, local_best_tardiness,
+                                                      global_best_tardiness, iteration_run_time,
                                                       diversity_rate]],
                                                       columns=iteration_record_columns)
+
             iteration_record = iteration_record.append(new_row_iteration_record, ignore_index=True)
             best_solution['num_job'] = best_solution['num_job'].astype(int)
-            DataOutput.iteration_record_writer(self, ITERATION_OUTPUT, iteration_record, best_solution)
+            DataOutput.iteration_record_writer(self, iteration_record, best_solution, ITERATION_OUTPUT)
 
         # Adding timeline to best solution
         genetic_finished_time = timer() - program_start
 
-        DataOutput.data_writer(self, OUTPUT_FILE_LINK,
-                               global_best_tardiness,
-                               best_solution,
-                               initial_finished_time,
-                               genetic_finished_time)
+        DataOutput.data_writer(self, global_best_tardiness,
+                               best_solution, initial_finished_time,
+                               genetic_finished_time, OUTPUT_FILE_LINK)
+
         # Build plot.ly Gantt Chart
         PlotlyGantt.plotly_gantt(self, best_solution)
 
@@ -185,17 +186,23 @@ class main():
 
 
 if __name__ == '__main__':
+    
     print("Start!!!")
+    
     profile_program = cProfile.Profile()
     profile_program.enable()
+
     main = main()
     main.delete_old_files()
     main.main_run()
+
     profile_program.disable()
+
     written_data = io.StringIO()
     line_written_data = pstats.Stats(profile_program,
                                      stream=written_data).sort_stats('tottime')
     line_written_data.print_stats()
     with open(CPROFILE_LOG, 'w+') as output_log_file:
         output_log_file.write(written_data.getvalue())
+
     print('Finished!!')
