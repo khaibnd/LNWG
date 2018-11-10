@@ -1,6 +1,7 @@
 '''Using NSGA-II'''
 import io
 import os
+import sys
 import pstats
 import cProfile
 import pandas as pd
@@ -69,15 +70,15 @@ class main():
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         
-        '''
+        
         # Test Fitness
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
 
         b_fitness = FitnessCalculation.calculate_weighted_tardiness(self, b_output)
         print('b_fitness', format(b_fitness, ","))
-        '''
         
+        sys.exit()
         # Generate initial population
         LoadInitial = InitialSolution(self.parameter,
                                       self.demand,
@@ -122,7 +123,7 @@ class main():
             print('Crossover Generated')
 
             # mutation
-            self.population_dict = ChrosMutation.chros_mutation(self)
+            # self.population_dict = ChrosMutation.chros_mutation(self)
             # DataOutput.operation_output_writer(self, MUTATION_OUTPUT)
             
             print('Mutation Generated')

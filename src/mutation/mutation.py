@@ -265,7 +265,7 @@ class ChrosMutation():
                 temp_full = temp_full.sort_index()
                 temp_full = temp_full.reset_index(drop=True)
                 chros.update(temp_full)
-
+            print('mutation len', len(chros))
             self.population_dict[chros_index] = chros
-
+        
         return self.population_dict
