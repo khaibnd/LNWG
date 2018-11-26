@@ -71,7 +71,7 @@ class DataOutput():
         return calendar_time
 
 
-    def data_writer(self, best_tardiness,
+    def final_writer(self, best_tardiness,
                     best_solution, initial_finished_time,
                     genetic_finished_time, output_):
         '''Write Running Parameters to Excel file'''

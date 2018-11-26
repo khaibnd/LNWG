@@ -68,10 +68,9 @@ class FitnessCalculation():
         return job_processing_time
 
  
-    def calculate_job_processing_time_plus(self, job_processing_time, row, chromos):
+    def calculate_job_processing_time_plus(self, job_processing_time, machine, num_lot, chromos):
         '''Adding daily machine none workign hours to the job competion time'''
-        machine = row['machine']
-        num_lot = row['num_lot']
+
         machine_daily_work_hour = self.machine_criteria.loc[self.machine_criteria.machine == machine, 'work_hour'].values[0]
         machine_completion_time = chromos.loc[chromos.machine == machine][ 'machine_completion_time'].max()
         lot_completion_time = chromos.loc[chromos.num_lot == num_lot]['lot_completion_time'].max()
@@ -114,7 +113,8 @@ class FitnessCalculation():
         3. Similar raw fabrication part on rob slicing operation
         4. Similar part on other operations
         '''
-        check_df = check_df.loc[np.logical_and(check_df.completion_time == 0, check_df.machine == machine)]
+        check_df = check_df.loc[np.logical_and(np.logical_and(check_df.completion_time == 0, check_df.machine == machine),
+                                               check_df.runable >= 1)]
 
         if (operation == 'coat'):
             coat_design = self.criteria.loc[self.criteria.part == part, 'coat_design'].values[0]
@@ -158,7 +158,7 @@ class FitnessCalculation():
         3. Similar raw fabrication part on rob slicing operation
         4. Similar part on other operations
         '''
-        check_df = check_df.loc[check_df.completion_time == 0]
+        check_df = check_df.loc[np.logical_and(check_df.completion_time == 0, check_df.runable >= 1)]
 
         if (operation == 'coat'):
             coat_design = self.criteria.loc[self.criteria.part == part, 'coat_design'].values[0]
@@ -173,6 +173,8 @@ class FitnessCalculation():
             groupable_df = check_df[(check_df.operation == 'block_wedge') &
                                     (check_df.coat_design == coat_design)]
             return groupable_df
+        
+    
     
         elif (operation == 'rob_slicing'):
             fabrication_part = self.criteria.loc[self.criteria.part == part, 'fabrication_part'].values[0]
@@ -192,7 +194,7 @@ class FitnessCalculation():
             print('check group df condition')
 
 
-    def completion_time_assign_condition(self, row_index, row, chromos):
+    def completion_time_assign_condition(self, row, chromos):
         '''
         Check condition to calculate gene's completion time:
         1. The completion_time has yet assigned
@@ -200,17 +202,15 @@ class FitnessCalculation():
             - Or the its previous operation' s competion_time has assigned
             - Or the index of row not in chros index (recalculate completion_time)
         '''
-        chromos_index_list = chromos.index.tolist()
 
-        if (np.logical_and(chromos.at[row_index, 'completion_time'] == 0,
-                           np.logical_or(len(chromos) == 531,
-                                         chromos.at[row_index, 'review'] == 1))):
+        if (np.logical_and(row['completion_time'] == 0,
+                           np.logical_or(np.logical_and(len(chromos) == 238,row['review'] == 1),
+                                         np.logical_and(len(chromos) < 238,row['review'] > 1)))):
             if pd.isnull(row['prev_operation_index']):
-                return True
-            elif (int(row['prev_operation_index'])not in (chromos_index_list)):
                 return True
             elif chromos.at[int(row['prev_operation_index']), 'completion_time'] > 0:
                 return True
+
 
 
     def calculate_completion_time(self, observation_list, observation):
@@ -290,19 +290,21 @@ class FitnessCalculation():
         3. Return chromosome with new value of gene code
         '''
         for row_index in observation_list:
+            print('row_index', row_index)
             observation.loc[row_index, 'review'] += 1
             '''Start main calculation'''
-            #print('row_index', row_index)
 
-            # Check the job yet observe
+            # Check the job yet assign anf recusive not affect to the main loop
             row = observation.loc[row_index]
-            if (FitnessCalculation.completion_time_assign_condition(self, row_index, row, observation)):
-                part = observation.at[row_index, 'part']
-                operation = observation.at[row_index, 'operation']
-                machine = observation.at[row_index, 'machine']
-                num_sequence = observation.at[row_index, 'num_sequence']
-                coat_design = observation.at[row_index, 'coat_design']
-                fabrication_part = observation.at[row_index, 'fabrication_part']
+            if (FitnessCalculation.completion_time_assign_condition(self, row, observation) == True):
+                part = row['part']
+                operation = row['operation']
+                num_lot = row['num_lot']
+                machine = row['machine']
+                num_sequence = row['num_sequence']
+                coat_design = row['coat_design']
+                fabrication_part = row['fabrication_part']
+                job_processing_time = row['job_processing_time']
                 #print(coat_design)
                 max_lotsize = int(self.machine_lotsize.at[FitnessCalculation.line_index(self,
                                                                                         machine,
@@ -312,13 +314,12 @@ class FitnessCalculation():
                                                                                         machine,
                                                                                         num_sequence),
                                                                                         'min_lotsize'])
-                job_processing_time = FitnessCalculation.calculate_job_processing_time(self,
-                                                                                       part,
-                                                                                       operation,
-                                                                                       num_sequence)
+
                 completion_time = FitnessCalculation.calculate_job_processing_time_plus(self,
                                                                                         job_processing_time,
-                                                                                        row, observation)
+                                                                                        machine,
+                                                                                        num_lot,
+                                                                                        observation)
                 # Step 6.1: Machine load lotsize = 1
                 if (np.logical_and(max_lotsize == 1, min_lotsize == 1)):
                     observation.at[row_index, ['completion_time',\
@@ -326,23 +327,20 @@ class FitnessCalculation():
                                                'lot_completion_time']] = completion_time
                     observation.at[row_index, ['min_assign', 'max_assign']] = 1
 
+                    try:
+                        observation.loc[int(row['post_operation_index']), ['runable']] = 1
+                    except:
+                        pass
+                
                 # Step 6.2: maximum lotsize > 1 and minimum lotsize = 1
                 elif (np.logical_and(max_lotsize > 1, min_lotsize == 1)):
                     succeed_observation = observation.loc[row_index:, :]
-                    groupable_df = FitnessCalculation.get_groupable_df(self,
-                                                                       part, coat_design, fabrication_part, operation,
-                                                                       machine, succeed_observation)
-
-                    #The group index is first operation of sequence
-                    if (pd.isnull(observation.at[row_index, 'prev_operation_index'])):
-                        #print('max first operation of the lot')
-                        assign_df = groupable_df
-
-                        #Cách tăng tốc độ assignment bằng np.where
-                        #observation['completion_time'] = np.where(observation.index.isin([assign_df_index]), completion_time, observation['completion_time'])
-                    else:
-                        assign_df = groupable_df.loc[np.logical_or(groupable_df.prev_operation_index < row_index,
-                                                                   pd.isnull(groupable_df.prev_operation_index))]
+                    assign_df = FitnessCalculation.get_groupable_df(self,
+                                                                    part, coat_design, fabrication_part, operation,
+                                                                    machine, succeed_observation)
+                    
+                    assign_df = assign_df.loc[np.logical_or(assign_df.prev_operation_index < row_index,
+                                                            pd.isnull(assign_df.prev_operation_index))]
                     assign_df_index = assign_df.index[:max_lotsize].tolist()
                     lot_size = len(assign_df_index)
                     observation.at[assign_df_index, 'max_assign'] = lot_size
@@ -350,6 +348,11 @@ class FitnessCalculation():
                     observation.at[assign_df_index, ['completion_time',\
                                                      'machine_completion_time',\
                                                      'lot_completion_time']] = completion_time
+                    try:
+                        post_assign_df_index = assign_df['post_operation_index']
+                        observation.at[post_assign_df_index, 'runable'] = 1
+                    except:
+                        pass
                 
                 # Step 6.3: minimum lotsize = minimum lotsize > 1
                 elif (np.logical_and(min_lotsize == max_lotsize, min_lotsize > 1)):
@@ -358,9 +361,9 @@ class FitnessCalculation():
                     assign_df = FitnessCalculation.get_groupable_df(self, part, coat_design, fabrication_part, operation, machine, precede_observation)
                     assign_df_size = len(assign_df)
                     # Previous contain enough lot for minimum lotsize load
-                    if assign_df_size >= min_lotsize:
+                    if assign_df_size == min_lotsize:
                         #print('min full assign same machine')
-                        assign_df = assign_df[:min_lotsize]
+                        #assign_df = assign_df[:min_lotsize]
                         assign_df_index = assign_df.index.tolist()
                         observation.loc[assign_df_index, ['min_assign', 'max_assign']] = min_lotsize
                         #print(min_lotsize)
@@ -377,10 +380,17 @@ class FitnessCalculation():
                         
                         check_df_list = check_df.index.tolist()
                         observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
+                        
+                        # build signal
+                        try:
+                            post_assign_df_index = assign_df['post_operation_index']
+                            observation.at[post_assign_df_index, 'runable'] = 1
+                        except:
+                            pass
                     
                     # Get list of lot can re-calculate completion time
                     else:
-                        assign_df = FitnessCalculation.get_different_machine_groupable_df(self, part, coat_design, fabrication_part, operation, precede_observation)
+                        assign_df = FitnessCalculation.get_different_machine_groupable_df(self, part, coat_design, fabrication_part, operation, observation)
                         assign_df_size = len(assign_df)
         
                         if(assign_df_size == 2 * min_lotsize):
@@ -401,29 +411,42 @@ class FitnessCalculation():
                                                                     precede_observation.completion_time == 0)]
                             check_df_list = check_df.index.tolist()
                             observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
+                            
+                            # build signal
+                            try:
+                                post_assign_df_index = assign_df['post_operation_index']
+                                observation.at[post_assign_df_index, 'runable'] = 1
+                            except:
+                                pass
                         
                         else:
-                            succeed_observation = observation.loc[np.logical_and(observation.completion_time == 0,
-                                                                         observation.index >= row_index)]
-                            assign_df = FitnessCalculation.get_different_machine_groupable_df(self, part, coat_design, fabrication_part, operation, succeed_observation)
-                            assign_df_size = len(assign_df)
-                        
-                            if(assign_df_size == 1):
-                                assign_df = FitnessCalculation.get_groupable_df(self, part, coat_design, fabrication_part, operation, machine, precede_observation)
+                            if (len(observation) == 238):
+                                succeed_observation = observation.loc[np.logical_and(observation.completion_time == 0,
+                                                                             observation.index >= row_index)]
+                                assign_df = FitnessCalculation.get_different_machine_groupable_df(self, part, coat_design, fabrication_part, operation, succeed_observation)
                                 assign_df_size = len(assign_df)
-                                assign_df_index = assign_df.index.tolist()
-                                #print('The leftover')
-                                observation.loc[assign_df_index, ['min_assign', 'max_assign']] = assign_df_size
-                                observation.at[assign_df_index, ['completion_time',\
-                                                                 'machine_completion_time',\
-                                                                 'lot_completion_time']] = completion_time
-                                #calculate
-                                check_df_lot = assign_df['num_lot'].unique()
-                                check_df = precede_observation.loc[np.logical_and(precede_observation.num_lot.isin(check_df_lot),
-                                                                        precede_observation.completion_time == 0)]
-                                check_df_list = check_df.index.tolist()
-                                observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
                             
+                                if assign_df_size <= min_lotsize:
+                                    assign_df = FitnessCalculation.get_different_machine_groupable_df(self, part, coat_design, fabrication_part, operation, observation)
+                                    assign_df_size = len(assign_df)
+                                    assign_df_index = assign_df.index.tolist()
+                                    #print('The leftover')
+                                    observation.loc[assign_df_index, ['min_assign', 'max_assign']] = 'sds'
+                                    observation.at[assign_df_index, ['completion_time',\
+                                                                     'machine_completion_time',\
+                                                                     'lot_completion_time']] = completion_time
+                                    #calculate
+                                    check_df_lot = assign_df['num_lot'].unique()
+                                    check_df = precede_observation.loc[np.logical_and(precede_observation.num_lot.isin(check_df_lot),
+                                                                            precede_observation.completion_time == 0)]
+                                    check_df_list = check_df.index.tolist()
+                                    observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
+                                    # build signal
+                                    try:
+                                        post_assign_df_index = assign_df['post_operation_index']
+                                        observation.at[post_assign_df_index, 'runable'] = 1
+                                    except:
+                                        pass
         return observation
     def adding_gene_code(self, observation):
         observation_size = len(observation)
@@ -433,7 +456,9 @@ class FitnessCalculation():
         observation['completion_time'] = pd.Series([0.00] * observation_size)
         observation['machine_completion_time'] = pd.Series([0.00] * observation_size)
         observation['lot_completion_time'] = pd.Series([0.00] * observation_size)
-
+        
+        
+        
         criteria_df = self.criteria.loc[:, ['part', 'coat_design', 'fabrication_part']]
         observation = observation.merge(criteria_df, on='part', how='left')
         
@@ -462,6 +487,14 @@ class FitnessCalculation():
                                                                                         row.num_lot,
                                                                                         row.post_operation,
                                                                                         observation), axis=1)
+        observation['job_processing_time'] = observation.apply(lambda row:
+                                                                FitnessCalculation.
+                                                                calculate_job_processing_time(self,
+                                                                                               row.part,
+                                                                                               row.operation,
+                                                                                               row.num_sequence), axis=1)
+        observation['runable'] = observation.apply(lambda row: 0 if row.prev_operation_index > 0 else 1, axis=1)
+        
         return observation
     
     def calculate_weighted_tardiness(self, observation):
@@ -478,5 +511,9 @@ class FitnessCalculation():
             demand_job_completion_time = observation.loc[observation.num_job == demand_job]['completion_time'].max()
             if ((lead_time[demand_job] * 24 - demand_job_completion_time) * demand_weight[demand_job]) < 0:
                 weighted_tardiness += ((lead_time[demand_job] * 24 - demand_job_completion_time) * demand_weight[demand_job])
-        observation.drop(['min_assign', 'max_assign', 'completion_time','machine_completion_time', 'lot_completion_time', 'prev_operation', 'post_operation', 'prev_operation_index', 'post_operation_index' ], axis=1, inplace=True)
+        writer = pd.ExcelWriter(r'/Users/khaibnd/github-repositories/LNWG/src/data/output3.xlsx')
+        observation.to_excel(writer, sheet_name='dsv')
+        writer.save()
+        
+        observation.drop(['min_assign', 'max_assign', 'completion_time','machine_completion_time', 'lot_completion_time', 'prev_operation', 'post_operation', 'prev_operation_index', 'post_operation_index', 'processing_time' ], axis=1, inplace=True)
         return round(weighted_tardiness, 1)

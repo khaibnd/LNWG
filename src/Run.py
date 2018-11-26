@@ -70,7 +70,7 @@ class main():
         global_best_tardiness = -999999999999999999
         num_iteration = int(self.parameter[self.parameter.name == 'num_iteration']['value'])
         
-        
+        '''
         # Test Fitness
         output2 = r'/Users/khaibnd/github-repositories/LNWG/src/data/output2.xlsx'
         b_output = pd.read_excel(output2, sheet_name='best_solution')
@@ -81,6 +81,7 @@ class main():
         PlotlyGantt.plotly_gantt(self, b_output)
 
         sys.exit()
+        '''
         
         # Generate initial population
         LoadInitial = InitialSolution(self.parameter,
@@ -175,7 +176,7 @@ class main():
         # Adding timeline to best solution
         genetic_finished_time = timer() - program_start
 
-        DataOutput.data_writer(self, global_best_tardiness,
+        DataOutput.final_writer(self, global_best_tardiness,
                                best_solution, initial_finished_time,
                                genetic_finished_time, OUTPUT_FILE_LINK)
 

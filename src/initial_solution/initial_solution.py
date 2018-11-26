@@ -86,8 +86,7 @@ class InitialSolution():
             # Get sub_df_per_lot index
             new_index_sequence = deepcopy(sub_df_per_lot.index.values)
             # Sort sub_df_per_lot by part sequence
-            sub_df_per_lot['operation'] = pd.Categorical(
-                sub_df_per_lot['operation'], part_sequence)
+            sub_df_per_lot['operation'] = pd.Categorical( sub_df_per_lot['operation'], part_sequence)
             sub_df_per_lot = sub_df_per_lot.sort_values('operation')
             sub_df_per_lot.index = new_index_sequence
             # Build element of population
