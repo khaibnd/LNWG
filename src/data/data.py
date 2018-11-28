@@ -114,7 +114,7 @@ class DataOutput():
                                                                                                             row), axis=1)
         #Slice the raw to the final report
         best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine',
-                                       'num_sequence', 'max_assign', 'processing_time', 'processing_time_plus',
+                                       'num_sequence', 'lotsize_assign', 'processing_time', 'processing_time_plus',
                                        'calendar_start_time', 'calendar_completion_time']]
 
         best_solution.to_excel(writer, sheet_name='best_solution')
@@ -157,7 +157,7 @@ class DataOutput():
                                                                                                             row), axis=1)
         #Slice the raw to the final report
         best_solution = best_solution[['num_job', 'num_lot', 'part', 'operation', 'machine',
-                                       'num_sequence', 'max_assign', 'processing_time', 'processing_time_plus',
+                                       'num_sequence', 'lotsize_assign', 'job_processing_time', 'processing_time_plus',
                                        'calendar_start_time', 'calendar_completion_time']]
 
         best_solution.to_excel(writer, sheet_name='best_solution')
