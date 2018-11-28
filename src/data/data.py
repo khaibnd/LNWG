@@ -96,8 +96,9 @@ class DataOutput():
         best_solution['processing_time_plus'] = best_solution.apply(lambda row:
                                                                 FitnessCalculation.
                                                                 calculate_job_processing_time_plus(self,
-                                                                                                   row.processing_time,
-                                                                                                   row,
+                                                                                                   row.job_processing_time,
+                                                                                                   row.machine,
+                                                                                                   row.num_lot,
                                                                                                    best_solution), axis=1)
         
         # Calculate each gene completion time
@@ -129,7 +130,7 @@ class DataOutput():
         # Adding extention gene code
         best_solution = FitnessCalculation.adding_gene_code(self, best_solution)     
      
-        best_solution['processing_time'] = best_solution.apply(lambda row:
+        best_solution['job_processing_time'] = best_solution.apply(lambda row:
                                                                 FitnessCalculation.
                                                                 calculate_job_processing_time(self,
                                                                                               row.part,
@@ -138,8 +139,9 @@ class DataOutput():
         best_solution['processing_time_plus'] = best_solution.apply(lambda row:
                                                                 FitnessCalculation.
                                                                 calculate_job_processing_time_plus(self,
-                                                                                                   row.processing_time,
-                                                                                                   row,
+                                                                                                   row.job_processing_time,
+                                                                                                   row.machine,
+                                                                                                   row.num_lot,
                                                                                                    best_solution), axis=1)
 
         # Calculate each gene completion time
