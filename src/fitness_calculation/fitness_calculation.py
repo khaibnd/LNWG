@@ -38,8 +38,8 @@ class FitnessCalculation():
         except:
             post_part_sequence_operation = None
         return post_part_sequence_operation
-    
-    
+
+
     def num_lot_operation_index(self, num_lot, operation, chromos):
         '''Get gene index inside chromosome base on num_lot and operation'''
         try:
@@ -49,8 +49,8 @@ class FitnessCalculation():
         except:                                 
             index = None
         return index
-        
-    
+
+
     def calculate_job_processing_time(self, part, operation, num_sequence):
         '''VLOOKUP gene's completion time on database: self.processing_time'''
         try:
@@ -68,7 +68,7 @@ class FitnessCalculation():
             
         return job_processing_time
 
- 
+
     def calculate_job_processing_time_plus(self, job_processing_time, machine, num_lot, chromos):
         '''Adding daily machine none workign hours to the job competion time'''
 
@@ -203,6 +203,7 @@ class FitnessCalculation():
         else:
             return False
 
+
     def recursive_calculate_completion_time(self, assign_df, observation):
         check_df_lot = assign_df['num_lot'].unique()
         check_df = observation.loc[observation.num_lot.isin(check_df_lot)]
@@ -210,6 +211,7 @@ class FitnessCalculation():
         check_df_list = check_df.index.tolist()
         observation = FitnessCalculation.calculate_completion_time(self, check_df_list, observation)
         return observation
+
 
     def calculate_completion_time(self, observation_list, observation):
         '''
@@ -287,7 +289,7 @@ class FitnessCalculation():
         
         3. Return chromosome with new value of gene code
         '''
-
+        observation = FitnessCalculation.adding_gene_code(self, observation)
         for row_index in observation_list:
 
             #print('row_index', row_index)
@@ -523,11 +525,11 @@ class FitnessCalculation():
     
     def calculate_weighted_tardiness(self, observation):
         '''Calculate Demand total Weight Tardiness'''
-        observation = FitnessCalculation.adding_gene_code(self, observation)
+        observation = FitnessCalculation.calculate_completion_time(self, observation.index.tolist(), observation)
         weighted_tardiness = 0
         demand_weight = self.demand['weight'].tolist()
         lead_time = self.demand['lead_time'].tolist()
-        observation = FitnessCalculation.calculate_completion_time(self, observation.index.tolist(), observation)
+        
         demand_job_list = observation['num_job'].unique()
 
         for demand_job in demand_job_list:

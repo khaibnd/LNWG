@@ -1,5 +1,5 @@
 '''Build Gantt Chart on http://plot.ly'''
-import pandas as pd
+
 import numpy as np
 import plotly
 import plotly.plotly as py
